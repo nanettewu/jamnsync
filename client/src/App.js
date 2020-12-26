@@ -5,15 +5,16 @@ import {
   HashRouter
 } from "react-router-dom";
 
+import Footer from "./components/Footer"
+
 import Login from './components/Login';
 import Logout from './components/Logout';
 
-import Home from "./Home";
-import Projects from "./Projects";
-import AudioPlayer from "./AudioPlayer";
-import Contact from "./Contact";
+import Home from "./components/Home";
+import Projects from "./components/Projects";
+import AudioPlayer from "./components/AudioPlayer";
 
-import nsync from "./nsync.jpg"
+import PrivateRoute from "./utils/PrivateRoute";
 
 class App extends Component {
   constructor() {
@@ -39,38 +40,40 @@ class App extends Component {
       <HashRouter>
         < div >
           <h1>JamNSync</h1>
-          <img src={nsync} alt="nsync" width="300" />
-
-          {!this.state.isUserLoggedIn && (
-            <Login onSuccessfulLogin={this.handleSuccessfulLogin} />
-          )}
-          {this.state.isUserLoggedIn && (
-            <div>
-              <div>
-                Welcome {this.state.userDetails.givenName}{" "}
-                {this.state.userDetails.familyName}!
+          <div style={{ position: 'absolute', right: 20, top: 35 }} >
+            {!this.state.isUserLoggedIn && (
+              <Login onSuccessfulLogin={this.handleSuccessfulLogin} />
+            )}
+            {this.state.isUserLoggedIn && (
+              <div style={{ display: "flex" }} >
+                <div>
+                  <p>
+                    Welcome, {this.state.userDetails.givenName}!
+                  </p>
+                </div>
+                <div style={{ marginLeft: "5px" }}>
+                  <Logout onSuccessfulLogout={this.handleSuccessfulLogout} />
+                </div>
               </div>
-              <div>
-                <Logout onSuccessfulLogout={this.handleSuccessfulLogout} />
-              </div>
-            </div>
-          )}
+            )}
+          </div>
 
           <ul className="header">
             <li><NavLink exact to="/">Home</NavLink></li>
-            <li><NavLink to="/projects">Projects</NavLink></li>
-            <li><NavLink to="/audioplayer">Audio Player</NavLink></li>
-            <li><NavLink to="/contact">Contact</NavLink></li>
+            {this.state.isUserLoggedIn && <li><NavLink to="/projects">Projects</NavLink></li>}
+            {this.state.isUserLoggedIn && <li><NavLink to="/audioplayer">Audio Player</NavLink></li>}
           </ul>
 
           <div className="content">
             <Route exact path="/" component={Home} />
-            <Route path="/projects" component={Projects} />
-            <Route path="/audioplayer" component={AudioPlayer} />
-            <Route path="/contact" component={Contact} />
+            <PrivateRoute path="/projects" component={Projects} authed={this.state.isUserLoggedIn} />
+            <PrivateRoute path="/audioplayer" component={AudioPlayer} authed={this.state.isUserLoggedIn} />
           </div>
+
+          <Footer />
+
         </div >
-      </HashRouter>
+      </HashRouter >
     );
   }
 }

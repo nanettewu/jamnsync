@@ -3,17 +3,22 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@cleandersonlobo/react-mic": "^1.2.0",
     "@testing-library/jest-dom": "^5.11.6",
     "@testing-library/react": "^11.1.2",
     "@testing-library/user-event": "^12.2.2",
     "howler": "^2.2.1",
     "mic-recorder-to-mp3": "^2.2.2",
+    "rc-slider": "^9.7.1",
     "react": "^16.14.0",
+    "react-audio-recorder": "^2.2.0",
     "react-dom": "^16.14.0",
     "react-google-login": "^5.1.22",
+    "react-mic": "^12.4.6",
     "react-router-dom": "^5.2.0",
     "react-scripts": "4.0.0",
     "react-use-audio-player": "^1.2.4",
+    "videojs-record": "^4.1.1",
     "web-vitals": "^0.2.4"
   },
   "scripts": {

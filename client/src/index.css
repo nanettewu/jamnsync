@@ -37,3 +37,19 @@ ul.header li a {
 .active {
   background-color: #0099FF;
 }
+
+.footer{
+  margin-top: 1rem;
+  padding: 1rem;
+  background-color: rgba(96, 147, 234, 0.777);
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+}
+
+/* change player background color */
+#myVideo {
+  background-color: #ACB2F2;
+}
+
