@@ -1,0 +1,2 @@
+FLASK_APP=audio-processing
+FLASK_ENV=development

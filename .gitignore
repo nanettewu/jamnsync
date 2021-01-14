@@ -23,6 +23,11 @@ yarn-debug.log*
 yarn-error.log*
 
 # python server
+server/.env/*
+server/__pycache__
+server/audio-processing/__pycache__
+
+
 server/audio-processing/exported_media/*
 server/audio-processing/media/*
-server/.env/*
+
