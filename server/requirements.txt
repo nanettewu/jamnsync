@@ -1,3 +1,21 @@
+# audio stuff
 ffmpeg
 pydub
 sox
+numpy
+
+# flask
+Flask
+itsdangerous
+Werkzeug
+Jinja2
+MarkupSafe
+
+# other
+click==7.1.2
+python-dotenv==0.15.0
+
+
+
+
+
