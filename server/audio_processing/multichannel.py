@@ -3,7 +3,7 @@ import os
 from pydub import AudioSegment
 from pydub.playback import play
 
-AUDIO_EXTS = ("mp3", "ogg", "wav", "flac", "aac", "aif", "m4a")
+AUDIO_EXTS = ("mp3", "ogg", "wav", "flac", "aac", "aiff", "m4a")
 
 '''
 Creates a multichannel AudioSegment from a list of audiofiles.

@@ -12,7 +12,7 @@ def entry_point():
 
 @app.route('/test')
 def test():
-  return 'placeholder audio file'
+  return {"test": "/test successful!"}
 
 # lists all files in s3 bucket
 @app.route("/storage")
