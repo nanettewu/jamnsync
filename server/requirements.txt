@@ -11,6 +11,10 @@ Werkzeug
 Jinja2
 MarkupSafe
 
+# aws
+boto3
+awscli
+
 # other
 click==7.1.2
 python-dotenv==0.15.0

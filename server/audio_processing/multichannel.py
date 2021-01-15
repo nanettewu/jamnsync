@@ -8,7 +8,7 @@ AUDIO_EXTS = ("mp3", "ogg", "wav", "flac", "aac", "aif", "m4a")
 '''
 Creates a multichannel AudioSegment from a list of audiofiles.
 
-IN: list of audiofile names (str) relative to server/audio-processing directory
+IN: list of audiofile names (str) relative to server/audio_processing directory
 OUT: multichannel AudioSegment
 '''
 def create_multichannel(*args):

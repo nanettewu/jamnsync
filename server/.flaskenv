@@ -1,2 +1,2 @@
-FLASK_APP=audio-processing
+FLASK_APP=audio_processing
 FLASK_ENV=development

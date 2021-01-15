@@ -25,9 +25,12 @@ yarn-error.log*
 # python server
 server/.env/*
 server/__pycache__
-server/audio-processing/__pycache__
+server/audio_processing/__pycache__
+
+server/audio_processing/exported_media/*
+server/audio_processing/media/*
+server/audio_processing/s3_downloads/*
+server/audio_processing/s3_uploads/*
 
 
-server/audio-processing/exported_media/*
-server/audio-processing/media/*
 
