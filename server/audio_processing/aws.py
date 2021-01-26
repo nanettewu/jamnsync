@@ -10,7 +10,7 @@ def upload_file(filename, bucket):
     Function to upload a file to an S3 bucket
     """
     filepath = f"{UPLOAD_FOLDER}/{filename}"
-    key_name = f"uploads/{filename}"
+    key_name = f"project1/{filename}" # TODO
     # upload source relative to server dir
     s3_client = boto3.client('s3')
     response = s3_client.upload_file(filepath, bucket, key_name)

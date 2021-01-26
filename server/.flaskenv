@@ -1,2 +1,2 @@
-FLASK_APP=audio_processing
+FLASK_APP=audio_processing/app.py
 FLASK_ENV=development

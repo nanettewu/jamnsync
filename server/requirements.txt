@@ -11,6 +11,13 @@ Werkzeug
 Jinja2
 MarkupSafe
 
+# db
+Flask-SQLAlchemy
+Flask-Migrate
+sqlalchemy
+wheel
+psycopg2
+
 # aws
 boto3
 awscli
