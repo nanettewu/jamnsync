@@ -9,6 +9,8 @@ from audio_processing.models import User, RehearsalGroup, group_membership, Proj
 UPLOAD_FOLDER="audio_processing/s3_uploads"
 BUCKET="jamnsync"
 
+# helpful: https://opensource.com/article/18/4/flask
+
 @app.route('/')
 def entry_point():
     return 'Hello World!'
