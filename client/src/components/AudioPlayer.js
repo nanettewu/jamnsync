@@ -4,10 +4,10 @@ import Slider from 'rc-slider';
 import 'rc-slider/assets/index.css';
 import MicRecorder from 'mic-recorder-to-mp3';
 
-import 'video.js/dist/video-js.css';
-import videojs from 'video.js';
-import 'webrtc-adapter';
-import RecordRTC from 'recordrtc';
+// import 'video.js/dist/video-js.css';
+// import videojs from 'video.js';
+// import 'webrtc-adapter';
+// import RecordRTC from 'recordrtc';
 // Required imports when recording audio-only using the videojs-wavesurfer plugin
 import WaveSurfer from 'wavesurfer.js';
 import MicrophonePlugin from 'wavesurfer.js/dist/plugin/wavesurfer.microphone.js';
@@ -23,44 +23,44 @@ import Record from 'videojs-record/dist/videojs.record.js';
 WaveSurfer.microphone = MicrophonePlugin;
 const Mp3Recorder = new MicRecorder({ bitRate: 128 });
 
-const videoJsOptions = {
-  controls: true,
-  bigPlayButton: false,
-  width: 600,
-  height: 200,
-  fluid: false,
-  plugins: {
+// const videoJsOptions = {
+//   controls: true,
+//   bigPlayButton: false,
+//   width: 600,
+//   height: 200,
+//   fluid: false,
+//   plugins: {
 
-    // wavesurfer section is only needed when recording audio-only
-    wavesurfer: {
-      backend: 'WebAudio',
-      waveColor: '#36393b',
-      progressColor: 'black',
-      debug: true,
-      cursorWidth: 1,
-      hideScrollbar: true,
-      plugins: [
-        // enable microphone plugin
-        WaveSurfer.microphone.create({
-          bufferSize: 4096,
-          numberOfInputChannels: 1,
-          numberOfOutputChannels: 1,
-          constraints: {
-            video: false,
-            audio: true
-          }
-        })
-      ]
-    },
-    record: {
-      audio: true,
-      video: false,
-      maxLength: 20,
-      displayMilliseconds: true,
-      debug: true
-    }
-  }
-};
+//     // wavesurfer section is only needed when recording audio-only
+//     wavesurfer: {
+//       backend: 'WebAudio',
+//       waveColor: '#36393b',
+//       progressColor: 'black',
+//       debug: true,
+//       cursorWidth: 1,
+//       hideScrollbar: true,
+//       plugins: [
+//         // enable microphone plugin
+//         WaveSurfer.microphone.create({
+//           bufferSize: 4096,
+//           numberOfInputChannels: 1,
+//           numberOfOutputChannels: 1,
+//           constraints: {
+//             video: false,
+//             audio: true
+//           }
+//         })
+//       ]
+//     },
+//     record: {
+//       audio: true,
+//       video: false,
+//       maxLength: 20,
+//       displayMilliseconds: true,
+//       debug: true
+//     }
+//   }
+// };
 
 var kq_bg = new Howl({
   src: ["audio/kq/KillerQueen_bg.wav"],
@@ -92,9 +92,11 @@ class AudioPlayer extends Component {
       file: null,
       sound: null,
       recordedTrack: null,
-      flask_test: null,
+      public_s3_test: null,
       s3_test: null,
       s3_howl: null,
+      s3_upload_url: "",
+      upload_success: false,
     }
   }
 
@@ -110,40 +112,40 @@ class AudioPlayer extends Component {
       },
     );
 
-    // instantiate Video.js
-    this.player = videojs(this.videoNode, videoJsOptions, () => {
-      // print version information at startup
-      const version_info = 'Using video.js ' + videojs.VERSION +
-        ' with videojs-record ' + videojs.getPluginVersion('record') +
-        ' and recordrtc ' + RecordRTC.version;
-      videojs.log(version_info);
-    });
+    // // instantiate Video.js
+    // this.player = videojs(this.videoNode, videoJsOptions, () => {
+    //   // print version information at startup
+    //   const version_info = 'Using video.js ' + videojs.VERSION +
+    //     ' with videojs-record ' + videojs.getPluginVersion('record') +
+    //     ' and recordrtc ' + RecordRTC.version;
+    //   videojs.log(version_info);
+    // });
 
-    // device is ready
-    this.player.on('deviceReady', () => {
-      console.log('device is ready!');
-    });
+    // // device is ready
+    // this.player.on('deviceReady', () => {
+    //   console.log('device is ready!');
+    // });
 
-    // user clicked the record button and started recording
-    this.player.on('startRecord', () => {
-      console.log('started recording!');
-    });
+    // // user clicked the record button and started recording
+    // this.player.on('startRecord', () => {
+    //   console.log('started recording!');
+    // });
 
-    // user completed recording and stream is available
-    this.player.on('finishRecord', () => {
-      // recordedData is a blob object containing the recorded data that
-      // can be downloaded by the user, stored on server etc.
-      console.log('finished recording: ', this.player.recordedData);
-    });
+    // // user completed recording and stream is available
+    // this.player.on('finishRecord', () => {
+    //   // recordedData is a blob object containing the recorded data that
+    //   // can be downloaded by the user, stored on server etc.
+    //   console.log('finished recording: ', this.player.recordedData);
+    // });
 
-    // error handling
-    this.player.on('error', (element, error) => {
-      console.warn(error);
-    });
+    // // error handling
+    // this.player.on('error', (element, error) => {
+    //   console.warn(error);
+    // });
 
-    this.player.on('deviceError', () => {
-      console.error('device error:', this.player.deviceErrorCode);
-    });
+    // this.player.on('deviceError', () => {
+    //   console.error('device error:', this.player.deviceErrorCode);
+    // });
   }
 
   componentWillUnmount() {
@@ -236,10 +238,10 @@ class AudioPlayer extends Component {
     }
 
     if (/\.(mp3|wav|aiff)$/i.test(event.target.files[0].name)) {
-      alert("file uploaded!")
+      console.log("file uploaded!")
       console.log(event.target.files[0])
       this.setState({
-        file: URL.createObjectURL(event.target.files[0]),
+        file: event.target.files[0],
         sound: new Howl({
           src: [URL.createObjectURL(event.target.files[0])],
           volume: 0.5,
@@ -254,13 +256,16 @@ class AudioPlayer extends Component {
   }
 
   handlePlayAndRecord = () => {
-    this.handlePlayPause();
     this.startRecording();
+    // this.handlePlayPause();
+    setTimeout(() => {
+      this.handlePlayPause()
+    }, 350)
   }
 
   handleStopPlayAndRecord = () => {
-    this.handleStop();
     this.stopRecording();
+    this.handleStop();
   }
 
   handlePlayTwoTracks = () => {
@@ -285,15 +290,12 @@ class AudioPlayer extends Component {
     kq_solo.playing() ? kq_solo.pause() : kq_solo.play();
   }
 
-  handleTestFlaskEndpoint = () => {
-    console.log("testing flask endpoint")
+  handleTestPublicS3File = () => {
+    console.log("test public file download")
 
-    fetch('/test', {
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      }
-    }).then(res => res.json()).then(data => { this.setState({ flask_test: data.test }) })
+    fetch('https://jamnsync.s3.amazonaws.com/click_104bpm_30sec.mp3', {
+      method: 'get',
+    }).then(res => res.blob()).then(blob => { console.log(blob); this.setState({ public_s3_test: URL.createObjectURL(blob) }) })
   }
 
   handleTestS3Download = () => {
@@ -318,6 +320,19 @@ class AudioPlayer extends Component {
     })
   }
 
+  handleTestS3Upload = () => {
+    console.log("testing s3 file upload")
+
+    const data = new FormData()
+    data.append('file', this.state.file)
+
+    fetch('/upload', { method: 'POST', body: data, }).then((res) => { this.setState({ upload_success: true }) });
+  }
+
+  handleS3UploadChange = () => {
+    this.setState({ upload_success: false, s3_upload_url: "" });
+  }
+
   handlePlayS3File = () => {
     console.log("playing s3 file download")
     console.log(this.state.s3_howl)
@@ -335,12 +350,12 @@ class AudioPlayer extends Component {
           <Slider min={0} max={100} defaultValue={50} onChange={this.changeSpeed} />
         </div> */}
 
-        < div >
+        {/* < div >
           <p>videojs record</p>
           <div data-vjs-player>
             <video id="myVideo" ref={node => this.videoNode = node} className="video-js vjs-default-skin" playsInline></video>
           </div>
-        </div >
+        </div > */}
 
         <div>
           <p>file upload</p>
@@ -350,6 +365,9 @@ class AudioPlayer extends Component {
         {
           this.state.file &&
           <div>
+            <p>test s3 upload</p>
+            <button onClick={this.handleTestS3Upload}>upload to s3</button>
+            {this.state.upload_success && <p>---upload success!</p>}
             <p>file player</p>
             playback only:
             {this.state.playing
@@ -384,19 +402,21 @@ class AudioPlayer extends Component {
         }
 
         <div>
-          <p>test playing simultaneously</p>
-          <button onClick={this.handlePlayTwoTracksKQ}>play/pause killer queen</button>
-        </div>
+          <p><b>[NEW]</b> test download public s3 file</p>
+          <button onClick={this.handleTestPublicS3File}>download public file</button>
+          {this.state.public_s3_test && <audio src={this.state.public_s3_test} controls="controls" />}
 
-        <div>
-          <p>test flask endpoint: {this.state.flask_test}</p>
-          <button onClick={this.handleTestFlaskEndpoint}>query test</button>
         </div>
 
         <div>
           <p>test s3 audio file download</p>
           <button onClick={this.handleTestS3Download}>download</button>
           {this.state.s3_howl && <button onClick={this.handlePlayS3File}>play s3 file</button>}
+        </div>
+
+        <div>
+          <p>test playing simultaneously</p>
+          <button onClick={this.handlePlayTwoTracksKQ}>play/pause killer queen</button>
         </div>
 
       </div >

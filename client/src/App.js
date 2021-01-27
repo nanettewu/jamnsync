@@ -13,6 +13,7 @@ import Logout from './components/Logout';
 import Home from "./components/Home";
 import Projects from "./components/Projects";
 import AudioPlayer from "./components/AudioPlayer";
+import DAW from "./components/DAW";
 
 import PrivateRoute from "./utils/PrivateRoute";
 
@@ -26,12 +27,10 @@ class App extends Component {
   }
 
   handleSuccessfulLogin = response => {
-    console.log("[STATE] setting user login state to true!")
     this.setState({ userDetails: response.profileObj, isUserLoggedIn: true });
   };
 
   handleSuccessfulLogout = () => {
-    console.log("[STATE] setting user login state to false!")
     this.setState({ isUserLoggedIn: false })
   };
 
@@ -62,12 +61,15 @@ class App extends Component {
             <li><NavLink exact to="/">Home</NavLink></li>
             {this.state.isUserLoggedIn && <li><NavLink to="/projects">Projects</NavLink></li>}
             {this.state.isUserLoggedIn && <li><NavLink to="/audioplayer">Audio Player</NavLink></li>}
+            {this.state.isUserLoggedIn && <li><NavLink to="/daw">DAW</NavLink></li>}
+
           </ul>
 
           <div className="content">
             <Route exact path="/" component={Home} />
             <PrivateRoute path="/projects" component={Projects} authed={this.state.isUserLoggedIn} />
             <PrivateRoute path="/audioplayer" component={AudioPlayer} authed={this.state.isUserLoggedIn} />
+            <PrivateRoute path="/daw" component={DAW} authed={this.state.isUserLoggedIn} />
           </div>
 
           <Footer />

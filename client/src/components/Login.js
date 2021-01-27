@@ -11,9 +11,9 @@ const CLIENT_ID = '248637884136-0bql8665umlks4j2t0nhvajgnb7lgfdh.apps.googleuser
 function Login(props) {
   const onSuccess = (res) => {
     console.log('Login Success: currentUser:', res.profileObj);
-    alert(
-      `Logged in successfully!`
-    );
+    // alert(
+    //   `Logged in successfully!`
+    // );
     refreshTokenSetup(res);
     props.onSuccessfulLogin(res);
   };
