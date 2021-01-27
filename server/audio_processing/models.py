@@ -51,4 +51,4 @@ class Take(db.Model):
   track_id = db.Column(db.Integer, db.ForeignKey('track.id'))
   take = db.Column(db.Integer, nullable=False)
   s3_info = db.Column(db.String, unique=True, nullable=False)
-  date_uploaded = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+  date_uploaded = db.Column(db.DateTime, nullable=False, default=datetime.now)
