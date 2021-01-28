@@ -26,6 +26,8 @@ yarn-error.log*
 server/.env/*
 server/__pycache__
 server/audio_processing/__pycache__
+server/migrations/__pycache__
+server/migrations/versions/__pycache__
 
 server/experiments/*
 server/audio_processing/s3_downloads/*
