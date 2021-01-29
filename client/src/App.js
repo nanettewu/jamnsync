@@ -3,10 +3,11 @@ import { HashRouter, NavLink, Route } from "react-router-dom";
 import Footer from "./components/Footer";
 import Login from "./components/Login";
 import Logout from "./components/Logout";
-import AudioPlayer from "./routes/audioplayer/AudioPlayer"; // temp
 import DAW from "./routes/daw/DAW";
 import Home from "./routes/home/Home";
 import Projects from "./routes/projects/Projects";
+import AudioPlayer from "./routes/temp-audioplayer/AudioPlayer"; // temp
+import { EmbeddedJitsi } from "./routes/temp-jitsi/EmbeddedJitsi"; // temp
 import PrivateRoute from "./utils/components/PrivateRoute";
 
 class App extends Component {
@@ -68,6 +69,11 @@ class App extends Component {
                 <NavLink to="/daw">DAW</NavLink>
               </li>
             )}
+            {this.state.isUserLoggedIn && (
+              <li>
+                <NavLink to="/jitsi">Jitsi</NavLink>
+              </li>
+            )}
           </ul>
 
           <div className="content">
@@ -85,6 +91,11 @@ class App extends Component {
             <PrivateRoute
               path="/daw"
               component={DAW}
+              authed={this.state.isUserLoggedIn}
+            />
+            <PrivateRoute
+              path="/jitsi"
+              component={EmbeddedJitsi}
               authed={this.state.isUserLoggedIn}
             />
           </div>
