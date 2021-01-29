@@ -4,8 +4,6 @@ This project is a web-based system that streamlines the virtual music-making exp
 
 The proposed system is an accessible, complete solution that encapsulates the important aspects of an in-person rehearsal. By abstracting away underlying complexities of the system (e.g. audio mixing), JamNSync enables musicians to set up a recording session to rehearse in real-time without extensive technical understanding.
 
----
-
 ## Subprojects
 
 ### Client (JS)
