@@ -3,11 +3,14 @@ import { HashRouter, NavLink, Route } from "react-router-dom";
 import Footer from "./components/Footer";
 import Login from "./components/Login";
 import Logout from "./components/Logout";
-import DAW from "./routes/daw/DAW";
+import Project from "./routes/project/Project";
+import ProjectSearch from "./routes/project/ProjectSearch";
 import Home from "./routes/home/Home";
-import Projects from "./routes/projects/Projects";
+import Groups from "./routes/groups/Groups";
 import AudioPlayer from "./routes/temp-audioplayer/AudioPlayer"; // temp
 import { EmbeddedJitsi } from "./routes/temp-jitsi/EmbeddedJitsi"; // temp
+import WebAudio from "./routes/temp-webaudio/WebAudio"; // temp
+
 import PrivateRoute from "./utils/components/PrivateRoute";
 
 class App extends Component {
@@ -20,11 +23,33 @@ class App extends Component {
   }
 
   handleSuccessfulLogin = (response) => {
-    this.setState({ userDetails: response.profileObj, isUserLoggedIn: true });
+    const userDetails = response.profileObj;
+    const formData = new FormData();
+    formData.append("google_auth_id", userDetails.googleId);
+    formData.append("google_email", userDetails.email);
+    formData.append("user_name", userDetails.name);
+    const requestOptions = {
+      method: "POST",
+      body: formData,
+    };
+
+    fetch("/auth/login", requestOptions)
+      .then((resp) => resp.json())
+      .then((res) => {
+        console.log(res);
+      });
+
+    this.setState({ userDetails: userDetails, isUserLoggedIn: true });
   };
 
   handleSuccessfulLogout = () => {
-    this.setState({ isUserLoggedIn: false });
+    fetch("/auth/logout", { method: "POST" })
+      .then((resp) => resp.json())
+      .then((res) => {
+        console.log(res);
+      });
+
+    this.setState({ userDetails: {}, isUserLoggedIn: false });
   };
 
   render() {
@@ -49,38 +74,41 @@ class App extends Component {
           </div>
 
           <ul className="header">
-            <li>
-              <NavLink exact to="/">
-                Home
-              </NavLink>
-            </li>
-            {this.state.isUserLoggedIn && (
+            {!this.state.isUserLoggedIn && (
               <li>
-                <NavLink to="/projects">Projects</NavLink>
+                <NavLink exact to="/">
+                  Home
+                </NavLink>
               </li>
             )}
             {this.state.isUserLoggedIn && (
-              <li>
-                <NavLink to="/audioplayer">Audio Player</NavLink>
-              </li>
-            )}
-            {this.state.isUserLoggedIn && (
-              <li>
-                <NavLink to="/daw">DAW</NavLink>
-              </li>
-            )}
-            {this.state.isUserLoggedIn && (
-              <li>
-                <NavLink to="/jitsi">Jitsi</NavLink>
-              </li>
+              <div>
+                <li>
+                  <NavLink exact to="/">
+                    Home
+                  </NavLink>
+                </li>
+                <li>
+                  <NavLink to="/groups">Groups</NavLink>
+                </li>
+                <li>
+                  <NavLink to="/audioplayer">Audio Player (temp)</NavLink>
+                </li>
+                <li>
+                  <NavLink to="/jitsi">Jitsi (temp)</NavLink>
+                </li>
+                <li>
+                  <NavLink to="/webaudio">Web Audio (temp)</NavLink>
+                </li>
+              </div>
             )}
           </ul>
 
           <div className="content">
             <Route exact path="/" component={Home} />
             <PrivateRoute
-              path="/projects"
-              component={Projects}
+              path="/groups"
+              component={Groups}
               authed={this.state.isUserLoggedIn}
             />
             <PrivateRoute
@@ -89,13 +117,24 @@ class App extends Component {
               authed={this.state.isUserLoggedIn}
             />
             <PrivateRoute
-              path="/daw"
-              component={DAW}
+              exact
+              path={["/project", "/project/"]}
+              component={ProjectSearch}
+              authed={this.state.isUserLoggedIn}
+            />
+            <PrivateRoute
+              path="/project"
+              component={Project}
               authed={this.state.isUserLoggedIn}
             />
             <PrivateRoute
               path="/jitsi"
               component={EmbeddedJitsi}
+              authed={this.state.isUserLoggedIn}
+            />
+            <PrivateRoute
+              path="/webaudio"
+              component={WebAudio}
               authed={this.state.isUserLoggedIn}
             />
           </div>
