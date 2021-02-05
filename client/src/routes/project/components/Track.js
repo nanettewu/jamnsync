@@ -10,6 +10,7 @@ class Track extends Component {
         </p>
 
         <img
+          alt="temp track img"
           src="https://hackernoon.com/hn-images/0*IqN97cZPYRGHk7A6."
           height="50"
         />

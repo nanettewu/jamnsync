@@ -1,0 +1,23 @@
+.stitched {
+  padding: 20px;
+  margin: 10px;
+  margin-left: 0px;
+  margin-top: 15px;
+  color: rgb(193, 192, 192);
+  font-size: 16px;
+  font-weight: bold;
+  font-family: sans-serif;
+  text-align: center;
+  line-height: 1.3em;
+  border: 2px dashed rgb(205, 205, 205);
+  border-radius: 10px;
+  font-weight: normal;
+  background-color: #fff;
+  width: 100%;
+  outline: none;
+}
+
+.stitched:hover {
+  color: rgb(140, 140, 140);
+  border: 2px dashed rgb(140, 140, 140);
+}
