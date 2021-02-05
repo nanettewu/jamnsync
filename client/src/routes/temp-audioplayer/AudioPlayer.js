@@ -97,6 +97,8 @@ class AudioPlayer extends Component {
       s3_howl: null,
       s3_upload_url: "",
       upload_success: false,
+      audio: null,
+      audioIsRecording: false,
     };
   }
 
@@ -330,11 +332,8 @@ class AudioPlayer extends Component {
   };
 
   handleTestS3Upload = () => {
-    console.log("testing s3 file upload");
-
     const data = new FormData();
     data.append("file", this.state.file);
-
     fetch("/upload", { method: "POST", body: data }).then((res) => {
       this.setState({ upload_success: true });
     });
@@ -348,6 +347,21 @@ class AudioPlayer extends Component {
     console.log("playing s3 file download");
     console.log(this.state.s3_howl);
     this.state.s3_howl.play();
+  };
+
+  handleRecord = () => {
+    if (this.state.isBlocked) {
+      console.log("Permission Denied");
+      alert("Permission Denied!");
+    } else {
+      console.log("recording now");
+      this.setState({ audioIsRecording: true });
+    }
+  };
+
+  handleStopRecord = () => {
+    console.log("stopped now");
+    this.setState({ audioIsRecording: false });
   };
 
   render() {
@@ -434,7 +448,7 @@ class AudioPlayer extends Component {
           </div>
         )}
 
-        <div>
+        {/* <div>
           <p>
             <b>[NEW]</b> test download public s3 file:
             https://jamnsync.s3.amazonaws.com/click_104bpm_30sec.mp3
@@ -445,22 +459,22 @@ class AudioPlayer extends Component {
           {this.state.public_s3_test && (
             <audio src={this.state.public_s3_test} controls="controls" />
           )}
-        </div>
+        </div> */}
 
-        <div>
+        {/* <div>
           <p>test s3 audio file download</p>
           <button onClick={this.handleTestS3Download}>download</button>
           {this.state.s3_howl && (
             <button onClick={this.handlePlayS3File}>play s3 file</button>
           )}
-        </div>
+        </div> */}
 
-        <div>
+        {/* <div>
           <p>test playing simultaneously</p>
           <button onClick={this.handlePlayTwoTracksKQ}>
             play/pause killer queen
           </button>
-        </div>
+        </div> */}
       </div>
     );
   }
