@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from datetime import datetime
 from flask_login import UserMixin
+from sqlalchemy.sql import expression
 
 from audio_processing.app import db
 
@@ -40,11 +41,13 @@ class Track(db.Model):
   track_name: str
   project_id: int
   takes: Take
+  is_backing: bool
   
   id = db.Column(db.Integer, primary_key=True)
   track_name = db.Column(db.String)
   project_id = db.Column(db.Integer, db.ForeignKey('project.id'))
-  takes = db.relationship('Take', backref='track', lazy=True) # one-to-many
+  takes = db.relationship('Take', backref='track', cascade="all,delete", lazy=True) # one-to-many
+  is_backing = db.Column(db.Boolean, server_default=expression.false(), nullable=False)
 
 @dataclass
 class Project(db.Model):
@@ -57,7 +60,7 @@ class Project(db.Model):
   id = db.Column(db.Integer, primary_key=True)
   project_name = db.Column(db.String, unique=True, nullable=False)
   group_id = db.Column(db.Integer, db.ForeignKey('rehearsal_group.id'))
-  tracks = db.relationship('Track', backref='project', lazy=True) # one-to-many
+  tracks = db.relationship('Track', backref='project', cascade="all,delete", lazy=True) # one-to-many
   project_hash = db.Column(db.String, unique=True, nullable=False)
   
 @dataclass
@@ -68,8 +71,8 @@ class RehearsalGroup(db.Model):
   
   id = db.Column(db.Integer, primary_key=True)
   group_name = db.Column(db.String, unique=True, nullable=False)
-  projects = db.relationship('Project', backref='rehearsal_group', lazy=True) # one-to-many
-  users = db.relationship('User', secondary=group_membership)
+  projects = db.relationship('Project', cascade="all,delete", backref='rehearsal_group') # one-to-many
+  users = db.relationship('User', secondary=group_membership, lazy="dynamic")
   
 @dataclass
 class User(db.Model, UserMixin):
