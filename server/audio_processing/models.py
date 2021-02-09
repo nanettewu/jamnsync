@@ -5,16 +5,6 @@ from sqlalchemy.sql import expression
 
 from audio_processing.app import db
 
-'''
-sqlalchemy 
-
-db.session.add(User(user_name="temp"))
-db.session.commit()
-
-ex: User.query.all(), then you can loop over them
-ex: User.query.filter_by(id=3).first()
-'''
-
 # many-to-many 
 group_membership = db.Table('group_membership',
   db.Column('user_id', db.Integer, db.ForeignKey('user.id')),
@@ -71,7 +61,7 @@ class RehearsalGroup(db.Model):
   
   id = db.Column(db.Integer, primary_key=True)
   group_name = db.Column(db.String, unique=True, nullable=False)
-  projects = db.relationship('Project', cascade="all,delete", backref='rehearsal_group') # one-to-many
+  projects = db.relationship('Project', cascade="all,delete", backref='group') # one-to-many
   users = db.relationship('User', secondary=group_membership, lazy="dynamic")
   
 @dataclass
