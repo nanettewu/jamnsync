@@ -1,7 +1,7 @@
 import React, { Component } from "react";
 import Group from "./Group";
 import "./Groups.css";
-import { Prompt } from "react-st-modal"; // https://github.com/Nodlik/react-st-modal
+import { Confirm, Prompt } from "react-st-modal"; // https://github.com/Nodlik/react-st-modal
 
 class Groups extends Component {
   constructor() {
@@ -14,12 +14,11 @@ class Groups extends Component {
     })
       .then((resp) => resp.json())
       .then((res) => {
-        this.setState({
-          groups: res,
-        });
-        console.log(res);
+        this.setState({ groups: res });
       });
     this.createNewGroup = this.createNewGroup.bind(this);
+    this.deleteGroup = this.deleteGroup.bind(this);
+    this.renameGroup = this.renameGroup.bind(this);
   }
 
   async createNewGroup() {
@@ -40,12 +39,75 @@ class Groups extends Component {
           resp.json().then((data) => ({ status: resp.status, body: data }))
         )
         .then((obj) => {
-          console.log(obj);
           if (obj.status !== 400) {
             this.setState({
               groups: this.state.groups.concat([
                 { group_name: group_name, id: obj.body.group_id, projects: [] },
               ]),
+            });
+          }
+        });
+    }
+  }
+
+  async deleteGroup(id, name) {
+    console.log("deleting group");
+    const result = await Confirm(
+      `Are you sure you want to delete "${name}"?`,
+      "Delete Group"
+    );
+    if (result) {
+      const formData = new FormData();
+      formData.append("group_id", id);
+      const requestOptions = {
+        method: "DELETE",
+        body: formData,
+      };
+      fetch("/api/group", requestOptions)
+        .then((resp) =>
+          resp.json().then((data) => ({ status: resp.status, body: data }))
+        )
+        .then((obj) => {
+          if (obj.status === 200) {
+            const updatedGroups = [...this.state.groups].filter(
+              (i) => i.id !== id
+            );
+            this.setState({
+              groups: updatedGroups,
+            });
+          }
+        });
+    }
+  }
+
+  async renameGroup(id, name) {
+    console.log("renaming group");
+    const new_name = await Prompt("Rename Your Group", {
+      isRequired: true,
+      defaultValue: name,
+    });
+    if (new_name) {
+      const formData = new FormData();
+      formData.append("new_name", new_name);
+      formData.append("group_id", id);
+      const requestOptions = {
+        method: "PUT",
+        body: formData,
+      };
+
+      fetch("/api/group", requestOptions)
+        .then((resp) =>
+          resp.json().then((data) => ({ status: resp.status, body: data }))
+        )
+        .then((obj) => {
+          if (obj.status === 200) {
+            const updatedGroups = [...this.state.groups].map((groupInfo) =>
+              groupInfo.id === id
+                ? { ...groupInfo, group_name: new_name }
+                : groupInfo
+            );
+            this.setState({
+              groups: updatedGroups,
             });
           }
         });
@@ -63,6 +125,20 @@ class Groups extends Component {
               name={groupInfo.group_name}
               projects={groupInfo.projects}
             />
+            <button
+              onClick={() =>
+                this.renameGroup(groupInfo.id, groupInfo.group_name)
+              }
+            >
+              Rename Group
+            </button>
+            <button
+              onClick={() =>
+                this.deleteGroup(groupInfo.id, groupInfo.group_name)
+              }
+            >
+              Delete Group
+            </button>
           </div>
         ))}
         <button className="stitched" onClick={this.createNewGroup}>

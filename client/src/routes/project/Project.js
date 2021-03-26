@@ -1,22 +1,230 @@
 import React, { Component } from "react";
-import DAW from "./components/DAW";
+import DAW from "./daw/DAW";
+import { Prompt, Confirm } from "react-st-modal"; // https://github.com/Nodlik/react-st-modal
 
 class Project extends Component {
-  constructor() {
-    super();
+  constructor(props) {
+    super(props);
+    this.state = {
+      project_name: null,
+      group_name: null,
+      project_id: null,
+      track_metadata: null,
+      project_hash: props.location.pathname.split("/").pop(),
+    };
+    if (this.state.project_hash === "project") {
+      this.state.project_hash = null;
+    }
+    this.createTrack = this.createTrack.bind(this);
+    this.deleteTrack = this.deleteTrack.bind(this);
+    this.renameTrack = this.renameTrack.bind(this);
+    this.createTake = this.createTake.bind(this);
+    this.deleteTake = this.deleteTake.bind(this);
   }
+
+  componentDidMount() {
+    this.retrieveProject();
+  }
+
+  retrieveProject = () => {
+    console.log("retrieving project: " + this.state.project_hash);
+    if (this.state.project_hash === null) {
+      return;
+    }
+    fetch(
+      "/api/project?" +
+        new URLSearchParams({ project_hash: this.state.project_hash })
+    )
+      .then((resp) =>
+        resp.json().then((data) => ({ status: resp.status, body: data }))
+      )
+      .then((obj) => {
+        const tracks = obj.body.tracks
+          ? obj.body.tracks.reduce((obj, item) => {
+              const formatted_takes = item["takes"].reduce((obj, item) => {
+                obj[item["take"]] = {
+                  date_uploaded: item["date_uploaded"],
+                  id: item["id"],
+                  s3_info: item["s3_info"],
+                  track_id: item["track_id"],
+                };
+                return obj;
+              }, {});
+              obj[item["id"]] = {
+                takes: formatted_takes,
+                track_name: item["track_name"],
+              };
+              return obj;
+            }, {})
+          : {};
+        if (obj.status === 200) {
+          this.setState({
+            project_name: obj.body.project_name,
+            group_name: obj.body.group.group_name,
+            project_id: obj.body.id,
+            track_metadata: tracks,
+          });
+        }
+      });
+  };
+
+  async createTrack() {
+    console.log("creating new track");
+    const track_name = await Prompt("Name Your Track", {
+      isRequired: true,
+    });
+    if (track_name) {
+      const formData = new FormData();
+      formData.append("track_name", track_name);
+      formData.append("project_id", this.state.project_id);
+      const requestOptions = {
+        method: "POST",
+        body: formData,
+      };
+      fetch("/api/track", requestOptions)
+        .then((resp) =>
+          resp.json().then((data) => ({ status: resp.status, body: data }))
+        )
+        .then((obj) => {
+          if (obj.status !== 400) {
+            console.log("added new track");
+            let updatedTracks = Object.assign({}, this.state.track_metadata);
+            updatedTracks[obj.body.track_id] = {
+              id: parseInt(obj.body.track_id),
+              project_id: this.state.projectId,
+              takes: {},
+              track_name: track_name,
+            };
+            this.setState({ track_metadata: updatedTracks });
+          }
+        });
+    }
+  }
+
+  async renameTrack(id, name) {
+    console.log("renaming track");
+    const new_name = await Prompt("Rename Your Track", {
+      isRequired: true,
+      defaultValue: name,
+    });
+    if (new_name) {
+      const formData = new FormData();
+      formData.append("track_id", id);
+      formData.append("new_name", new_name);
+      const requestOptions = {
+        method: "PUT",
+        body: formData,
+      };
+      fetch("/api/track", requestOptions)
+        .then((resp) =>
+          resp.json().then((data) => ({ status: resp.status, body: data }))
+        )
+        .then((obj) => {
+          if (obj.status === 200) {
+            let updatedTracks = Object.assign({}, this.state.track_metadata);
+            updatedTracks[id].track_name = new_name;
+            this.setState({ track_metadata: updatedTracks });
+          }
+        });
+    }
+  }
+
+  async deleteTrack(id, name) {
+    const result = await Confirm(
+      `Are you sure you want to delete "${name}"?`,
+      "Delete Track"
+    );
+    if (result) {
+      const formData = new FormData();
+      formData.append("track_id", id);
+      const requestOptions = {
+        method: "DELETE",
+        body: formData,
+      };
+      fetch("/api/track", requestOptions)
+        .then((resp) =>
+          resp.json().then((data) => ({ status: resp.status, body: data }))
+        )
+        .then((obj) => {
+          if (obj.status === 200) {
+            const updatedTracks = Object.assign({}, this.state.track_metadata);
+            delete updatedTracks[id];
+            this.setState({ track_metadata: updatedTracks });
+            return true;
+          }
+        });
+    }
+    return false;
+  }
+
+  createTake(track_id, file, latency) {
+    console.log("creating new take");
+    const formData = new FormData();
+    formData.append("track_id", track_id);
+    formData.append("file", file);
+    formData.append("latency", latency);
+    const requestOptions = {
+      method: "POST",
+      body: formData,
+    };
+
+    fetch("/api/take", requestOptions)
+      .then((resp) =>
+        resp.json().then((data) => ({ status: resp.status, body: data }))
+      )
+      .then((obj) => {
+        if (obj.status !== 400) {
+          let updatedTracks = Object.assign({}, this.state.track_metadata);
+          updatedTracks[parseInt(track_id)].takes[parseInt(obj.body.take)] = {
+            id: parseInt(obj.body.take_id),
+            track_id: parseInt(track_id),
+            s3_info: obj.body.s3_info,
+            date_uploaded: new Date(obj.body.timestamp).toString(),
+          };
+          this.setState({ track_metadata: updatedTracks });
+        }
+      });
+  }
+
+  deleteTake(track_id, take_number, take_id) {
+    const formData = new FormData();
+    formData.append("take_id", take_id);
+    const requestOptions = {
+      method: "DELETE",
+      body: formData,
+    };
+    fetch("/api/take", requestOptions)
+      .then((resp) =>
+        resp.json().then((data) => ({ status: resp.status, body: data }))
+      )
+      .then((obj) => {
+        if (obj.status === 200) {
+          const updatedTracks = Object.assign({}, this.state.track_metadata);
+          delete updatedTracks[track_id].takes[take_number];
+          this.setState({ track_metadata: updatedTracks });
+        }
+      });
+  }
+
   render() {
-    console.log(this.props.location.state);
+    const pathSuffix = this.props.location.pathname.split("/").pop();
     return (
-      <div>
-        {this.props.location.state && (
-          <div>
-            <h2>Project: {this.props.location.state.project_name}</h2>
-            <p>Group: {this.props.location.state.group_name}</p>
-          </div>
-        )}
-        <DAW />
-      </div>
+      this.state.project_hash &&
+      pathSuffix !== "project" &&
+      pathSuffix !== "" && (
+        <div>
+          <h2>Project: {this.state.project_name}</h2>
+          <DAW
+            trackMetadata={this.state.track_metadata}
+            retrieveProject={this.retrieveProject}
+            createTrack={this.createTrack}
+            deleteTrack={this.deleteTrack}
+            renameTrack={this.renameTrack}
+            createTake={this.createTake}
+            deleteTake={this.deleteTake}
+          />
+        </div>
+      )
     );
   }
 }

@@ -6,19 +6,18 @@ function Project(props) {
 
   const rehearse = () => {
     history.push({
-      pathname: `/project/${props.project_hash}`,
+      pathname: `/project/${props.project.project_hash}`,
       state: {
-        project_name: props.project_name,
-        project_id: props.project_id,
+        project: props.project,
         group_name: props.group_name,
-        gorup_id: props.group_id,
+        group_id: props.group_id,
       },
     });
   };
 
   return (
     <li>
-      Project: {props.project_name}{" "}
+      Project: {props.project.project_name}{" "}
       <button onClick={rehearse}>Rehearse!</button>
     </li>
   );

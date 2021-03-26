@@ -1,19 +1,20 @@
 import React, { Component } from "react";
 import Project from "./Project";
 import "./Group.css";
-import { Prompt } from "react-st-modal";
+import { Prompt, Confirm } from "react-st-modal";
 
 class Group extends Component {
-  constructor() {
-    super();
+  constructor(props) {
+    super(props);
     this.state = {
-      new_projects: [],
+      projects: props.projects,
     };
     this.createNewProject = this.createNewProject.bind(this);
+    this.deleteProject = this.deleteProject.bind(this);
+    this.renameProject = this.renameProject.bind(this);
   }
 
   async createNewProject() {
-    console.log("creating new project");
     const project_name = await Prompt("Name Your Project", {
       isRequired: true,
     });
@@ -31,16 +32,79 @@ class Group extends Component {
           resp.json().then((data) => ({ status: resp.status, body: data }))
         )
         .then((obj) => {
-          console.log(obj);
           if (obj.status !== 400) {
             this.setState({
-              new_projects: this.state.new_projects.concat([
+              projects: this.state.projects.concat([
                 {
                   project_name: project_name,
                   id: obj.body.project_id,
                   project_hash: obj.body.project_hash,
                 },
               ]),
+            });
+          }
+        });
+    }
+  }
+
+  async deleteProject(id, name) {
+    const result = await Confirm(
+      `Are you sure you want to delete "${name}"?`,
+      "Delete Project"
+    );
+    if (result) {
+      const formData = new FormData();
+      formData.append("project_id", id);
+      const requestOptions = {
+        method: "DELETE",
+        body: formData,
+      };
+      fetch("/api/project", requestOptions)
+        .then((resp) =>
+          resp.json().then((data) => ({ status: resp.status, body: data }))
+        )
+        .then((obj) => {
+          if (obj.status === 200) {
+            const updatedProjects = [...this.state.projects].filter(
+              (i) => i.id !== id
+            );
+            this.setState({
+              projects: updatedProjects,
+            });
+          }
+        });
+    }
+  }
+
+  async renameProject(id, name) {
+    const new_name = await Prompt("Rename Your Project", {
+      isRequired: true,
+      defaultValue: name,
+    });
+    if (new_name) {
+      const formData = new FormData();
+      formData.append("project_id", id);
+      formData.append("new_name", new_name);
+      const requestOptions = {
+        method: "PUT",
+        body: formData,
+      };
+
+      fetch("/api/project", requestOptions)
+        .then((resp) =>
+          resp.json().then((data) => ({ status: resp.status, body: data }))
+        )
+        .then((obj) => {
+          if (obj.status === 200) {
+            const updatedProjects = [
+              ...this.state.projects,
+            ].map((projectInfo) =>
+              projectInfo.id === id
+                ? { ...projectInfo, project_name: new_name }
+                : projectInfo
+            );
+            this.setState({
+              projects: updatedProjects,
             });
           }
         });
@@ -55,32 +119,33 @@ class Group extends Component {
           <button onClick={this.createNewProject}>+ New Project</button>
         </h3>
         <ul>
-          {this.props.projects &&
-            this.props.projects.length === 0 &&
-            this.state.new_projects &&
-            this.state.new_projects.length === 0 && (
-              <p className="text-muted">No projects created yet!</p>
-            )}
-          {this.props.projects.map((projectInfo, i) => (
+          {this.state.projects && this.state.projects.length === 0 && (
+            <p className="text-muted">No projects created yet!</p>
+          )}
+          {this.state.projects.map((projectInfo, i) => (
             <div key={`project_${i}`}>
-              <Project
-                project_name={projectInfo.project_name}
-                project_id={projectInfo.id}
-                project_hash={projectInfo.project_hash}
-                group_name={this.props.name}
-                group_id={this.props.id}
-              />
-            </div>
-          ))}
-          {this.state.new_projects.map((projectInfo, i) => (
-            <div key={`project_${i}`}>
-              <Project
-                project_name={projectInfo.project_name}
-                project_id={projectInfo.id}
-                project_hash={projectInfo.project_hash}
-                group_name={this.props.name}
-                group_id={this.props.id}
-              />
+              <div>
+                <Project
+                  project={projectInfo}
+                  group_name={this.props.name}
+                  group_id={this.props.id}
+                />
+                <button
+                  onClick={() =>
+                    this.renameProject(projectInfo.id, projectInfo.project_name)
+                  }
+                >
+                  Rename Project
+                </button>
+                <button
+                  style={{ marginBottom: "10px" }}
+                  onClick={() =>
+                    this.deleteProject(projectInfo.id, projectInfo.project_name)
+                  }
+                >
+                  Delete Project
+                </button>
+              </div>
             </div>
           ))}
         </ul>
