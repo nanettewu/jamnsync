@@ -23,7 +23,8 @@ class Take(db.Model):
   track_id = db.Column(db.Integer, db.ForeignKey('track.id'))
   take = db.Column(db.Integer, nullable=False)
   s3_info = db.Column(db.String, unique=True, nullable=False)
-  date_uploaded = db.Column(db.DateTime, nullable=False, default=datetime.now)
+  date_uploaded = db.Column(db.DateTime, nullable=False)
+  latency_ms = db.Column(db.Integer, nullable=False, default="0")
 
 @dataclass
 class Track(db.Model):
@@ -37,7 +38,7 @@ class Track(db.Model):
   track_name = db.Column(db.String)
   project_id = db.Column(db.Integer, db.ForeignKey('project.id'))
   takes = db.relationship('Take', backref='track', cascade="all,delete", lazy=True) # one-to-many
-  is_backing = db.Column(db.Boolean, server_default=expression.false(), nullable=False)
+  is_backing = db.Column(db.Boolean, server_default=expression.false())
 
 @dataclass
 class Project(db.Model):
@@ -48,7 +49,7 @@ class Project(db.Model):
   tracks: Track
   
   id = db.Column(db.Integer, primary_key=True)
-  project_name = db.Column(db.String, unique=True, nullable=False)
+  project_name = db.Column(db.String, nullable=False)
   group_id = db.Column(db.Integer, db.ForeignKey('rehearsal_group.id'))
   tracks = db.relationship('Track', backref='project', cascade="all,delete", lazy=True) # one-to-many
   project_hash = db.Column(db.String, unique=True, nullable=False)
@@ -76,6 +77,7 @@ class User(db.Model, UserMixin):
   user_name = db.Column(db.String, nullable=False)
   google_email = db.Column(db.String, unique=True, nullable=False)
   google_auth_id = db.Column(db.String, unique=True, nullable=False)
+  latency_ms = db.Column(db.Integer)
   groups = db.relationship('RehearsalGroup', secondary=group_membership)
 
   def __repr__(self):
