@@ -3,7 +3,7 @@ import { Redirect } from "react-router";
 
 // mimics Zoom's search functionality (i.e. if you enter mit.zoom.us/j/ without any ID)
 function ProjectSearch() {
-  const [projectId, setProjectId] = useState(null);
+  const [projectId, setProjectId] = useState("");
   const [redirect, setRedirect] = useState(false);
 
   const searchProject = () => {

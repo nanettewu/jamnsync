@@ -7,6 +7,18 @@ import Dropdown from "react-dropdown";
 import "react-dropdown/style.css";
 import { Confirm } from "react-st-modal"; // https://github.com/Nodlik/react-st-modal
 
+import IconButton from "@material-ui/core/IconButton";
+import Menu from "@material-ui/core/Menu";
+import MenuItem from "@material-ui/core/MenuItem";
+import MoreHorizIcon from "@material-ui/icons/MoreHoriz";
+
+const FILE_UPLOAD_OPTION = "+ Upload File";
+const RENAME_TRACK_OPTION = "Rename Track";
+const DELETE_TRACK_OPTION = "Delete Track";
+
+// ! TODO: IMPLEMENT FILE UPLOAD
+const options = [FILE_UPLOAD_OPTION, RENAME_TRACK_OPTION, DELETE_TRACK_OPTION];
+
 class Track extends Component {
   constructor(props) {
     super(props);
@@ -20,6 +32,7 @@ class Track extends Component {
       latestTake: 0,
       soloing: false,
       volume: 84.95,
+      threeDotsAnchorElement: null,
     };
     if (Object.keys(props.takes).length !== 0) {
       const latestKey = Object.keys(props.takes).pop();
@@ -152,7 +165,10 @@ class Track extends Component {
       });
     }
 
-    if (prevProps.masterVolume !== this.props.masterVolume) {
+    if (
+      this.state.audioFile &&
+      prevProps.masterVolume !== this.props.masterVolume
+    ) {
       this.state.audioFile.volume(
         (this.props.masterVolume * this.state.volume) / 100
       );
@@ -323,6 +339,23 @@ class Track extends Component {
     }
   }
 
+  clickThreeDotsMenu = (e) => {
+    this.setState({ threeDotsAnchorElement: e.currentTarget });
+  };
+
+  closeThreeDotsMenu = (e) => {
+    const option = e.target.innerText;
+    if (option === FILE_UPLOAD_OPTION) {
+      console.log("upload file");
+      // this.props.handleFileUpload(e.target.files, this.props.trackId);
+    } else if (option === RENAME_TRACK_OPTION) {
+      this.props.renameTrack(this.props.trackId, this.props.trackName);
+    } else if (option === DELETE_TRACK_OPTION) {
+      this.props.deleteTrack(this.props.trackId, this.props.trackName);
+    }
+    this.setState({ threeDotsAnchorElement: null });
+  };
+
   render() {
     let selectedKeyValue = { value: this.state.selectedTake };
     const takeDropdownOptions = Object.keys(this.props.takes)
@@ -343,22 +376,6 @@ class Track extends Component {
       }, [])
       .reverse();
 
-    // let takeDropdownOptions = Object.keys(this.props.takes)
-    //   .map((take) => {
-    //     console.log(take);
-    //     const rawDate = this.props.takes[take]["date_uploaded"];
-    //     const d = new Date(rawDate.substr(0, rawDate.lastIndexOf(" ") + 1));
-    //     const formattedDateTime = d.toLocaleString("en-US");
-    //     return {
-    //       value: take,
-    //       label: `Take ${take} - ${formattedDateTime}`,
-    //     };
-    //   })
-    //   .reverse();
-    // takeDropdownOptions = takeDropdownOptions.filter(
-    //   (item) => parseInt(item.value) <= parseInt(this.state.latestTake)
-    // );
-
     return (
       <div>
         {this.state.selected ? (
@@ -370,21 +387,98 @@ class Track extends Component {
               height="10"
             />{" "}
             <b>Track: {this.props.trackName}</b>{" "}
-            <button onClick={this.selectToRecord}>
+            <button onClick={this.selectToRecord} style={{ marginLeft: "5px" }}>
               {this.state.selected ? "Unselect" : "Select to Record"}
             </button>
+            <IconButton
+              aria-label="more"
+              aria-controls="track-menu"
+              aria-haspopup="true"
+              onClick={this.clickThreeDotsMenu}
+              style={{ marginLeft: "5px" }}
+            >
+              <MoreHorizIcon />
+            </IconButton>
+            <Menu
+              id="track-menu"
+              anchorEl={this.state.threeDotsAnchorElement}
+              keepMounted
+              open={this.state.threeDotsAnchorElement !== null}
+              onClose={this.closeThreeDotsMenu}
+              PaperProps={{
+                style: {
+                  maxHeight: 40 * 4.5,
+                  width: "20ch",
+                },
+              }}
+            >
+              {options.map((option) => (
+                <MenuItem key={option} onClick={this.closeThreeDotsMenu}>
+                  {option}
+                  <input type="file" id="file-upload" hidden />
+                </MenuItem>
+              ))}
+            </Menu>
           </p>
         ) : (
           <p>
             Track: {this.props.trackName}{" "}
-            <button onClick={this.selectToRecord}>
+            <button onClick={this.selectToRecord} style={{ marginLeft: "5px" }}>
               {this.state.selected ? "Unselect" : "Select to Record"}
             </button>
+            <IconButton
+              aria-label="more"
+              aria-controls="track-menu"
+              aria-haspopup="true"
+              onClick={this.clickThreeDotsMenu}
+              style={{ marginLeft: "5px" }}
+
+              // style={{ position: "absolute", right: 270, top: 235 }}
+            >
+              <MoreHorizIcon />
+            </IconButton>
+            {/* <input
+              type="file"
+              id="file-upload"
+              onChange={(e) =>
+                this.props.handleFileUpload(e.target.files, this.props.trackId)
+              }
+              hidden
+            /> */}
+            <Menu
+              id="track-menu"
+              anchorEl={this.state.threeDotsAnchorElement}
+              keepMounted
+              open={this.state.threeDotsAnchorElement !== null}
+              onClose={this.closeThreeDotsMenu}
+              PaperProps={{
+                style: {
+                  maxHeight: 48 * 4.5,
+                  width: "20ch",
+                },
+              }}
+            >
+              {options.map((option) => {
+                if (option === FILE_UPLOAD_OPTION) {
+                  return (
+                    <MenuItem key={option} onClick={this.closeThreeDotsMenu}>
+                      {option}
+                    </MenuItem>
+                  );
+                } else {
+                  return (
+                    <MenuItem key={option} onClick={this.closeThreeDotsMenu}>
+                      {option}
+                    </MenuItem>
+                  );
+                }
+              })}
+            </Menu>
           </p>
         )}
 
         {this.state.audioFile && Object.keys(this.props.takes).length > 0 && (
-          <div>
+          <div style={{ marginTop: "-15px", marginBottom: "20px" }}>
             <button className="muteButton" onClick={this.mute}>
               {!this.state.muted ? "Mute" : "Unmute"}
             </button>

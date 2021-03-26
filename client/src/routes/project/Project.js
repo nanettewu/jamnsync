@@ -28,7 +28,7 @@ class Project extends Component {
 
   retrieveProject = () => {
     console.log("retrieving project: " + this.state.project_hash);
-    if (this.state.project_hash === null) {
+    if (this.state.project_hash === null || this.state.project_hash === "") {
       return;
     }
     fetch(

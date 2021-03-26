@@ -167,7 +167,11 @@ class DAW extends Component {
 
   handleFileUpload = (files, targetId) => {
     console.log("handling file upload");
-    if (files[0] === null || typeof files[0] === "undefined") {
+    if (
+      files === null ||
+      files[0] === null ||
+      typeof files[0] === "undefined"
+    ) {
       return;
     }
     if (/\.(mp3|ogg|wav|flac|aac|aiff|m4a)$/i.test(files[0].name)) {
@@ -224,48 +228,41 @@ class DAW extends Component {
               return (
                 <div key={`track_${trackId}`}>
                   <hr />
-                  <Track
-                    trackName={trackInfo.track_name}
-                    trackId={trackId}
-                    takes={trackInfo.takes}
-                    masterPlay={this.state.masterPlay}
-                    masterStop={this.state.masterStop}
-                    masterRecord={this.state.masterRecord}
-                    selectedTrackId={this.state.selectedTrackId}
-                    setSelectedTrack={this.setSelectedTrack}
-                    deleteTake={this.deleteTake}
-                    soloTracks={this.state.soloTracks}
-                    updateSoloTracks={this.updateSoloTracks}
-                    masterVolume={this.state.masterVolume}
-                  />
                   <div>
-                    <input
-                      style={{
-                        marginLeft: "0px",
-                        marginTop: "5px",
-                        marginBottom: "5px",
-                      }}
-                      type="file"
-                      onChange={(e) =>
-                        this.handleFileUpload(e.target.files, trackId)
-                      }
+                    <Track
+                      trackName={trackInfo.track_name}
+                      trackId={trackId}
+                      takes={trackInfo.takes}
+                      masterPlay={this.state.masterPlay}
+                      masterStop={this.state.masterStop}
+                      masterRecord={this.state.masterRecord}
+                      selectedTrackId={this.state.selectedTrackId}
+                      setSelectedTrack={this.setSelectedTrack}
+                      deleteTake={this.deleteTake}
+                      soloTracks={this.state.soloTracks}
+                      updateSoloTracks={this.updateSoloTracks}
+                      masterVolume={this.state.masterVolume}
+                      renameTrack={this.renameTrack}
+                      deleteTrack={this.deleteTrack}
+                      handleFileUpload={this.handleFileUpload}
                     />
                   </div>
-                  <button
-                    onClick={() =>
-                      this.renameTrack(trackId, trackInfo.track_name)
-                    }
-                  >
-                    Rename Track
-                  </button>
-                  <button
-                    style={{ marginBottom: "10px" }}
-                    onClick={() =>
-                      this.deleteTrack(trackId, trackInfo.track_name)
-                    }
-                  >
-                    Delete Track
-                  </button>
+                  {Object.keys(this.props.trackMetadata[trackId].takes)
+                    .length === 0 && (
+                    <div style={{ marginTop: "-20px" }}>
+                      <input
+                        style={{
+                          marginLeft: "0px",
+                          marginTop: "5px",
+                          marginBottom: "5px",
+                        }}
+                        type="file"
+                        onChange={(e) =>
+                          this.handleFileUpload(e.target.files, trackId)
+                        }
+                      />
+                    </div>
+                  )}
                 </div>
               );
             })
@@ -273,7 +270,11 @@ class DAW extends Component {
             <p className="text-muted">No existing tracks found!</p>
           )}
         </div>
-        <button className="stitched" onClick={this.createTrack}>
+        <button
+          style={{ marginTop: "10px" }}
+          className="stitched"
+          onClick={this.createTrack}
+        >
           Create New Track
         </button>
         <p>
@@ -320,7 +321,7 @@ class DAW extends Component {
         </div>
         {/* <div className="line"></div> */}
         {this.state.showCountdown && (
-          <div className="timer">
+          <div className="timer" style={{ marginTop: "10px" }}>
             <CountdownCircleTimer
               isPlaying
               duration={3}
