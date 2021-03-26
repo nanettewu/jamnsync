@@ -6,19 +6,40 @@ BUCKET = "jamnsync"
 
 # source: https://stackabuse.com/file-management-with-aws-s3-python-and-flask/
 
-def upload_take(filename, formatted_time, group, project, track):
+def upload_take(filename, project_hash, track_id, take_num, current_time):
     """
     Function to upload a take to an S3 bucket
     """
+    # ex time: 2021_02_24-07_22_13_PM
+    formatted_timestamp = current_time.astimezone().strftime("%Y_%m_%d-%I_%M_%S_%p")
     parts = filename.rsplit('.', 1)
-    modified_filename = f"{parts[0]}_{formatted_time}.{parts[1]}"
+    modified_filename = f"track{track_id}_take{take_num}_{formatted_timestamp}.{parts[1]}"
 
     filepath = f"{UPLOAD_FOLDER}/{filename}" #source
-    key_name = f"{group}/{project}/{track}/{modified_filename}" #destination
+    key_name = f"projects/{project_hash}/{modified_filename}" #destination
     boto3.client('s3').upload_file(filepath, BUCKET, key_name)
+    print(f"Successfully uploaded take: {key_name}")
+
     
     # return public URL location of object
     return f"https://{BUCKET}.s3.amazonaws.com/{key_name}"
+
+def delete_take(take_filepath):
+    """
+    Function to deletee a take from an S3 bucket
+    """
+    key_name = f"projects/{take_filepath}" #destination
+    boto3.client('s3').delete_object(Bucket=BUCKET, Key=key_name)
+    print(f"Successfully deleted take: {key_name}")
+    
+def delete_project(project_hash):
+    """
+    Function to deletee a take from an S3 bucket
+    """
+    project_path = f"projects/{project_hash}/" 
+    bucket = boto3.resource('s3').Bucket(BUCKET)
+    bucket.objects.filter(Prefix=project_path).delete()
+    print(f"Successfully deleted project: {project_hash}")
 
 ############################################################################
 # Testing
