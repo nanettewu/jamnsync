@@ -1,0 +1,23 @@
+.fileUpload {
+  margin-left: 0px;
+}
+
+.timer-wrapper {
+  display: flex;
+  justify-content: center;
+}
+
+.timer {
+  font-size: 40px;
+  font-family: "Montserrat";
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.line {
+  margin-top: 10px;
+  height: 200px;
+  border-left: 2px solid red;
+  position: absolute;
+}
