@@ -1,17 +1,21 @@
 import React, { Component } from "react";
 import { HashRouter, NavLink, Route } from "react-router-dom";
-import Footer from "./components/Footer";
+import { Redirect } from "react-router";
+import { createHashHistory } from "history";
+
+// import Footer from "./components/Footer";
 import Login from "./components/Login";
 import Logout from "./components/Logout";
 import Project from "./routes/project/Project";
 import ProjectSearch from "./routes/project/ProjectSearch";
 import Home from "./routes/home/Home";
 import Groups from "./routes/groups/Groups";
-import AudioPlayer from "./routes/temp-audioplayer/AudioPlayer"; // temp
 import { EmbeddedJitsi } from "./routes/temp-jitsi/EmbeddedJitsi"; // temp
 import WebAudio from "./routes/temp-webaudio/WebAudio"; // temp
 
 import PrivateRoute from "./utils/components/PrivateRoute";
+
+const history = createHashHistory();
 
 class App extends Component {
   constructor() {
@@ -20,6 +24,17 @@ class App extends Component {
       userDetails: {},
       isUserLoggedIn: false,
     };
+  }
+
+  componentDidMount() {
+    let userDetails = JSON.parse(localStorage.getItem("userDetails"));
+    let isUserLoggedIn = localStorage.getItem("isUserLoggedIn") === "true";
+    if (isUserLoggedIn && !this.state.isUserLoggedIn) {
+      this.setState({
+        userDetails: userDetails,
+        isUserLoggedIn: isUserLoggedIn,
+      });
+    }
   }
 
   handleSuccessfulLogin = (response) => {
@@ -39,6 +54,8 @@ class App extends Component {
         console.log(res);
       });
 
+    localStorage.setItem("userDetails", JSON.stringify(userDetails));
+    localStorage.setItem("isUserLoggedIn", true);
     this.setState({ userDetails: userDetails, isUserLoggedIn: true });
   };
 
@@ -48,13 +65,16 @@ class App extends Component {
       .then((res) => {
         console.log(res);
       });
-
+    localStorage.clear();
     this.setState({ userDetails: {}, isUserLoggedIn: false });
   };
 
   render() {
+    // default to groups page if no history, otherwise go to last page before refresh
+    const pathname =
+      history.location.pathname === "/" ? "/groups" : history.location.pathname;
     return (
-      <HashRouter>
+      <HashRouter history={history}>
         <div>
           <h1>JamNSync</h1>
           <div style={{ position: "absolute", right: 20, top: 35 }}>
@@ -84,36 +104,32 @@ class App extends Component {
             {this.state.isUserLoggedIn && (
               <div>
                 <li>
-                  <NavLink exact to="/">
-                    Home
-                  </NavLink>
-                </li>
-                <li>
                   <NavLink to="/groups">Groups</NavLink>
                 </li>
                 <li>
-                  <NavLink to="/audioplayer">Audio Player (temp)</NavLink>
+                  <NavLink to="/project">Project</NavLink>
                 </li>
-                <li>
+                {/* <li>
                   <NavLink to="/jitsi">Jitsi (temp)</NavLink>
-                </li>
-                <li>
+                </li> */}
+                {/* <li>
                   <NavLink to="/webaudio">Web Audio (temp)</NavLink>
-                </li>
+                </li> */}
               </div>
             )}
           </ul>
 
           <div className="content">
-            <Route exact path="/" component={Home} />
+            <Route exact path="/">
+              {this.state.isUserLoggedIn ? (
+                <Redirect to={pathname} />
+              ) : (
+                <Home />
+              )}
+            </Route>
             <PrivateRoute
               path="/groups"
               component={Groups}
-              authed={this.state.isUserLoggedIn}
-            />
-            <PrivateRoute
-              path="/audioplayer"
-              component={AudioPlayer}
               authed={this.state.isUserLoggedIn}
             />
             <PrivateRoute
@@ -139,7 +155,7 @@ class App extends Component {
             />
           </div>
 
-          <Footer />
+          {/* <Footer /> */}
         </div>
       </HashRouter>
     );
