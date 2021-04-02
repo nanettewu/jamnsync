@@ -253,7 +253,6 @@ class AudioPlayer extends Component {
           format: ["wav"],
         }),
       });
-      // TODO: logic to upload file to server
     } else {
       alert("please upload valid audio file type (mp3, wav, aiff)");
     }
@@ -368,18 +367,6 @@ class AudioPlayer extends Component {
     return (
       <div>
         <h2>AUDIO PLAYER</h2>
-
-        {/* <div style={{ width: 200 }}>
-          <p>speed control [TODO]:</p>
-          <Slider min={0} max={100} defaultValue={50} onChange={this.changeSpeed} />
-        </div> */}
-
-        {/* < div >
-          <p>videojs record</p>
-          <div data-vjs-player>
-            <video id="myVideo" ref={node => this.videoNode = node} className="video-js vjs-default-skin" playsInline></video>
-          </div>
-        </div > */}
 
         <div>
           <p>file upload</p>

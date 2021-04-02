@@ -23,6 +23,11 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# client 
+client/src/routes/archived/*
+client/src/routes/temp-jitsi/*
+client/src/routes/temp-webaudio/*
+
 # python server
 server/.env/*
 server/__pycache__
