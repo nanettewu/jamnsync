@@ -32,9 +32,9 @@ function Project(props) {
   const closeThreeDotsMenu = (e) => {
     const option = e.target.innerText;
     if (option === RENAME_PROJECT_OPTION) {
-      this.props.renameProject(props.project.id, props.project.project_name);
+      props.renameProject(props.project.id, props.project.project_name);
     } else if (option === DELETE_PROJECT_OPTION) {
-      this.props.deleteProject(props.project.id, props.project.project_name);
+      props.deleteProject(props.project.id, props.project.project_name);
     }
     setThreeDotsAnchorElement(null);
   };
