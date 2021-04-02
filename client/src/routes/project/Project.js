@@ -213,16 +213,18 @@ class Project extends Component {
       pathSuffix !== "project" &&
       pathSuffix !== "" && (
         <div>
-          <h2>Project: {this.state.project_name}</h2>
-          <DAW
-            trackMetadata={this.state.track_metadata}
-            retrieveProject={this.retrieveProject}
-            createTrack={this.createTrack}
-            deleteTrack={this.deleteTrack}
-            renameTrack={this.renameTrack}
-            createTake={this.createTake}
-            deleteTake={this.deleteTake}
-          />
+          <h2>{this.state.project_name}</h2>
+          <div style={{ marginTop: "20px" }}>
+            <DAW
+              trackMetadata={this.state.track_metadata}
+              retrieveProject={this.retrieveProject}
+              createTrack={this.createTrack}
+              deleteTrack={this.deleteTrack}
+              renameTrack={this.renameTrack}
+              createTake={this.createTake}
+              deleteTake={this.deleteTake}
+            />
+          </div>
         </div>
       )
     );

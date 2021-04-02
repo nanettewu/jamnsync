@@ -14,7 +14,7 @@ import Draggable from "react-draggable";
 const backing = "audio/click.mp3";
 const recording = "audio/off_kovacs.mp3";
 
-export default function AlignRecordingModalContent() {
+export default function AlignRecordingModalContent(props) {
   const dialog = useDialog();
 
   const [dialogValue] = useState();
@@ -69,6 +69,9 @@ export default function AlignRecordingModalContent() {
     if (bgWaveSurfer && recWaveSurfer && !loadedAudio) {
       bgWaveSurfer.load(backing);
       recWaveSurfer.load(recording);
+      bgWaveSurfer.setVolume(0.3);
+      recWaveSurfer.setVolume(0.2);
+
       bgWaveSurfer.zoom(80);
       recWaveSurfer.zoom(80);
       setLoadedAudio(true);

@@ -12,9 +12,13 @@ class Groups extends Component {
     fetch("/api/groups", {
       method: "GET",
     })
-      .then((resp) => resp.json())
+      .then((resp) =>
+        resp.json().then((data) => ({ status: resp.status, body: data }))
+      )
       .then((res) => {
-        this.setState({ groups: res });
+        if (res.status !== 400) {
+          this.setState({ groups: res.body });
+        }
       });
     this.createNewGroup = this.createNewGroup.bind(this);
     this.deleteGroup = this.deleteGroup.bind(this);
@@ -118,31 +122,20 @@ class Groups extends Component {
     return (
       <div>
         <h2>GROUPS</h2>
-        {this.state.groups.map((groupInfo, i) => (
-          <div key={`group_${i}`}>
-            <Group
-              id={groupInfo.id}
-              name={groupInfo.group_name}
-              projects={groupInfo.projects}
-            />
-            <button
-              onClick={() =>
-                this.renameGroup(groupInfo.id, groupInfo.group_name)
-              }
-            >
-              Rename Group
-            </button>
-            <button
-              onClick={() =>
-                this.deleteGroup(groupInfo.id, groupInfo.group_name)
-              }
-            >
-              Delete Group
-            </button>
-          </div>
-        ))}
+        {this.state.groups &&
+          this.state.groups.map((groupInfo, i) => (
+            <div key={`group_${i}`}>
+              <Group
+                id={groupInfo.id}
+                name={groupInfo.group_name}
+                projects={groupInfo.projects}
+                renameGroup={this.renameGroup}
+                deleteGroup={this.deleteGroup}
+              />
+            </div>
+          ))}
         <button className="stitched" onClick={this.createNewGroup}>
-          Create New Group
+          + New Group
         </button>
       </div>
     );

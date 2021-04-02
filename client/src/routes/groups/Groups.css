@@ -9,7 +9,7 @@
   font-family: sans-serif;
   text-align: center;
   line-height: 1.3em;
-  border: 2px dashed rgb(158, 156, 156);
+  border: 2px dashed rgb(177, 174, 174);
   border-radius: 10px;
   font-weight: normal;
   background-color: #fff;
@@ -18,6 +18,6 @@
 }
 
 .stitched:hover {
-  color: rgb(140, 140, 140);
-  border: 2px dashed rgb(85, 85, 85);
+  color: rgb(135, 135, 135);
+  border: 2px dashed rgb(135, 135, 135);
 }

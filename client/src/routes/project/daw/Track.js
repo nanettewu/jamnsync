@@ -8,15 +8,17 @@ import "react-dropdown/style.css";
 import { Confirm } from "react-st-modal"; // https://github.com/Nodlik/react-st-modal
 
 import IconButton from "@material-ui/core/IconButton";
+import Tooltip from "@material-ui/core/Tooltip";
 import Menu from "@material-ui/core/Menu";
 import MenuItem from "@material-ui/core/MenuItem";
 import MoreHorizIcon from "@material-ui/icons/MoreHoriz";
+import HeadsetRoundedIcon from "@material-ui/icons/HeadsetRounded";
+import VolumeOffRoundedIcon from "@material-ui/icons/VolumeOffRounded";
 
 const FILE_UPLOAD_OPTION = "+ Upload File";
 const RENAME_TRACK_OPTION = "Rename Track";
 const DELETE_TRACK_OPTION = "Delete Track";
 
-// ! TODO: IMPLEMENT FILE UPLOAD
 const options = [FILE_UPLOAD_OPTION, RENAME_TRACK_OPTION, DELETE_TRACK_OPTION];
 
 class Track extends Component {
@@ -148,7 +150,8 @@ class Track extends Component {
     if (
       !this.state.soloing &&
       this.props.soloTracks.length !== 0 &&
-      !this.state.muted
+      !this.state.muted &&
+      this.state.audioFile
     ) {
       this.state.audioFile.mute(true);
       this.setState({
@@ -198,7 +201,10 @@ class Track extends Component {
 
   changeVolume = (value) => {
     // convert linear 1->100 to log 1->100 via f(n) = 50 * log(n)
-    const volume = Math.max(0, 50 * Math.log10(value));
+    // const volume = Math.max(0, 40 * Math.log10(value));
+    // const volume =
+    //   Math.max(0, (1 - Math.log(value) / Math.log(0.5)) / 9.5) * 100;
+    const volume = value;
     this.state.audioFile.volume((this.props.masterVolume * volume) / 100);
     this.setState({ volume: volume });
   };
@@ -346,8 +352,7 @@ class Track extends Component {
   closeThreeDotsMenu = (e) => {
     const option = e.target.innerText;
     if (option === FILE_UPLOAD_OPTION) {
-      console.log("upload file");
-      // this.props.handleFileUpload(e.target.files, this.props.trackId);
+      document.getElementById("file-upload").click();
     } else if (option === RENAME_TRACK_OPTION) {
       this.props.renameTrack(this.props.trackId, this.props.trackName);
     } else if (option === DELETE_TRACK_OPTION) {
@@ -377,114 +382,96 @@ class Track extends Component {
       .reverse();
 
     return (
-      <div>
-        {this.state.selected ? (
-          <p>
-            <img
-              src="images/daw/selected.png"
-              alt="selected"
-              width="10"
-              height="10"
-            />{" "}
-            <b>Track: {this.props.trackName}</b>{" "}
-            <button onClick={this.selectToRecord} style={{ marginLeft: "5px" }}>
-              {this.state.selected ? "Unselect" : "Select to Record"}
-            </button>
-            <IconButton
-              aria-label="more"
-              aria-controls="track-menu"
-              aria-haspopup="true"
-              onClick={this.clickThreeDotsMenu}
-              style={{ marginLeft: "5px" }}
-            >
-              <MoreHorizIcon />
-            </IconButton>
-            <Menu
-              id="track-menu"
-              anchorEl={this.state.threeDotsAnchorElement}
-              keepMounted
-              open={this.state.threeDotsAnchorElement !== null}
-              onClose={this.closeThreeDotsMenu}
-              PaperProps={{
-                style: {
-                  maxHeight: 40 * 4.5,
-                  width: "20ch",
-                },
-              }}
-            >
-              {options.map((option) => (
-                <MenuItem key={option} onClick={this.closeThreeDotsMenu}>
-                  {option}
-                  <input type="file" id="file-upload" hidden />
-                </MenuItem>
-              ))}
-            </Menu>
-          </p>
-        ) : (
-          <p>
-            Track: {this.props.trackName}{" "}
-            <button onClick={this.selectToRecord} style={{ marginLeft: "5px" }}>
-              {this.state.selected ? "Unselect" : "Select to Record"}
-            </button>
-            <IconButton
-              aria-label="more"
-              aria-controls="track-menu"
-              aria-haspopup="true"
-              onClick={this.clickThreeDotsMenu}
-              style={{ marginLeft: "5px" }}
-
-              // style={{ position: "absolute", right: 270, top: 235 }}
-            >
-              <MoreHorizIcon />
-            </IconButton>
-            {/* <input
-              type="file"
-              id="file-upload"
-              onChange={(e) =>
-                this.props.handleFileUpload(e.target.files, this.props.trackId)
-              }
-              hidden
-            /> */}
-            <Menu
-              id="track-menu"
-              anchorEl={this.state.threeDotsAnchorElement}
-              keepMounted
-              open={this.state.threeDotsAnchorElement !== null}
-              onClose={this.closeThreeDotsMenu}
-              PaperProps={{
-                style: {
-                  maxHeight: 48 * 4.5,
-                  width: "20ch",
-                },
-              }}
-            >
-              {options.map((option) => {
-                if (option === FILE_UPLOAD_OPTION) {
-                  return (
-                    <MenuItem key={option} onClick={this.closeThreeDotsMenu}>
-                      {option}
-                    </MenuItem>
-                  );
-                } else {
-                  return (
-                    <MenuItem key={option} onClick={this.closeThreeDotsMenu}>
-                      {option}
-                    </MenuItem>
-                  );
-                }
-              })}
-            </Menu>
-          </p>
-        )}
-
+      <div style={{ marginLeft: "5px" }}>
+        <hr />
+        <div>
+          {this.state.selected ? (
+            <div style={{ display: "inline-block" }}>
+              <img
+                src="images/daw/selected.png"
+                alt="selected"
+                width="10"
+                height="10"
+              />{" "}
+              <b>Track: {this.props.trackName}</b>{" "}
+            </div>
+          ) : (
+            <div style={{ display: "inline-block" }}>
+              Track: {this.props.trackName}{" "}
+            </div>
+          )}
+          <button
+            title="Select/unselect track for recording"
+            onClick={this.selectToRecord}
+            style={{ marginLeft: "5px" }}
+          >
+            {this.state.selected ? "Unselect" : "Select to Record"}
+          </button>
+          <IconButton
+            aria-label="more"
+            aria-controls="track-menu"
+            aria-haspopup="true"
+            onClick={this.clickThreeDotsMenu}
+            style={{ marginLeft: "5px" }}
+          >
+            <MoreHorizIcon />
+          </IconButton>
+          <input
+            type="file"
+            id="file-upload"
+            hidden
+            onChange={(e) =>
+              this.props.handleFileUpload(e.target.files, this.props.trackId)
+            }
+          />
+          <Menu
+            id="track-menu"
+            anchorEl={this.state.threeDotsAnchorElement}
+            keepMounted
+            open={this.state.threeDotsAnchorElement !== null}
+            onClose={this.closeThreeDotsMenu}
+            PaperProps={{
+              style: {
+                maxHeight: 40 * 4.5,
+                width: "20ch",
+              },
+            }}
+          >
+            {options.map((option) => (
+              <MenuItem key={option} onClick={this.closeThreeDotsMenu}>
+                {option}
+              </MenuItem>
+            ))}
+          </Menu>
+        </div>
         {this.state.audioFile && Object.keys(this.props.takes).length > 0 && (
-          <div style={{ marginTop: "-15px", marginBottom: "20px" }}>
-            <button className="muteButton" onClick={this.mute}>
-              {!this.state.muted ? "Mute" : "Unmute"}
-            </button>
-            <button onClick={this.solo}>
-              {!this.state.soloing ? "Solo" : "Unsolo"}
-            </button>
+          <div style={{ marginBottom: "20px" }}>
+            <Tooltip title="Mute" arrow>
+              <IconButton
+                disableRipple
+                aria-label="Mute this track"
+                onClick={this.mute}
+              >
+                {this.state.muted ? (
+                  <VolumeOffRoundedIcon color="secondary" />
+                ) : (
+                  <VolumeOffRoundedIcon />
+                )}
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Solo" arrow>
+              <IconButton
+                disableRipple
+                aria-label="Solo this track"
+                onClick={this.solo}
+              >
+                {this.state.soloing ? (
+                  <HeadsetRoundedIcon color="secondary" />
+                ) : (
+                  <HeadsetRoundedIcon />
+                )}
+              </IconButton>
+            </Tooltip>
             <div
               style={{
                 display: "inline-block",
@@ -501,27 +488,6 @@ class Track extends Component {
                 onChange={this.changeVolume}
               />
             </div>
-            {/* <button onClick={this.rewind}>Rewind</button> */}
-            {/* <button onClick={this.playPauseAudio}>
-              {this.state.playing ? "Pause" : "Play"}
-            </button> */}
-            {/* <button onClick={this.fastForward}>Fast Forward</button> */}
-            {/* <button onClick={this.stop}>Stop</button> */}
-            {/* <div
-              style={{
-                display: "inline-block",
-                width: "200px",
-                marginLeft: "10px",
-              }}
-            >
-              Seek:
-              <Slider
-                min={0}
-                max={Math.round(this.state.audioFile.duration())}
-                defaultValue={0}
-                onChange={this.seek}
-              />
-            </div> */}
             <div
               style={{
                 marginLeft: "10px",

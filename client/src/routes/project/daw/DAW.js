@@ -8,6 +8,11 @@ import AlignRecordingModalContent from "./AlignRecording";
 import Slider from "rc-slider";
 import "rc-slider/assets/index.css";
 
+import IconButton from "@material-ui/core/IconButton";
+import PlayArrowRoundedIcon from "@material-ui/icons/PlayArrowRounded";
+import StopRoundedIcon from "@material-ui/icons/StopRounded";
+import FiberManualRecordRoundedIcon from "@material-ui/icons/FiberManualRecordRounded";
+
 const Mp3Recorder = new MicRecorder({ bitRate: 128 });
 
 class DAW extends Component {
@@ -121,10 +126,12 @@ class DAW extends Component {
           this.setState({ isRecording: false, masterRecord: false });
         })
         .catch((e) => console.log(e));
-      // const result = await CustomDialog(<p>hi</p>, {
-      //   title: "Check Recording",
-      //   showCloseIcon: true,
-      // });
+      if (Object.keys(this.props.trackMetadata).length > 1) {
+        await CustomDialog(<AlignRecordingModalContent />, {
+          title: "Check Recording",
+          showCloseIcon: true,
+        });
+      }
     }
   }
 
@@ -227,7 +234,6 @@ class DAW extends Component {
               const trackInfo = this.props.trackMetadata[trackId];
               return (
                 <div key={`track_${trackId}`}>
-                  <hr />
                   <div>
                     <Track
                       trackName={trackInfo.track_name}
@@ -252,9 +258,9 @@ class DAW extends Component {
                     <div style={{ marginTop: "-20px" }}>
                       <input
                         style={{
-                          marginLeft: "0px",
-                          marginTop: "5px",
-                          marginBottom: "5px",
+                          marginLeft: "20px",
+                          marginTop: "25px",
+                          marginBottom: "20px",
                         }}
                         type="file"
                         onChange={(e) =>
@@ -267,47 +273,59 @@ class DAW extends Component {
               );
             })
           ) : (
-            <p className="text-muted">No existing tracks found!</p>
+            <div style={{ marginTop: "10px" }} />
           )}
         </div>
         <button
-          style={{ marginTop: "10px" }}
+          style={{ marginTop: "10px", marginLeft: "5px" }}
           className="stitched"
           onClick={this.createTrack}
         >
-          Create New Track
+          + New Track
         </button>
         <p>
           <b>Master Controls</b>
         </p>
-        {/* Live Monitoring, Volume Slider, Time, Rehearse <button>Record</button> */}
-        <button
-          onClick={this.toggleMasterPlay}
+        {/* TODO: Live Monitoring, Rehearse */}
+        <IconButton
+          disableRipple
+          aria-label="Stop"
+          onClick={this.toggleMasterRecord}
           disabled={this.state.masterPlay}
         >
-          Play
-        </button>
-        <button
+          {this.state.masterPlay ? (
+            <FiberManualRecordRoundedIcon style={{ fontSize: 28 }} />
+          ) : (
+            <FiberManualRecordRoundedIcon
+              style={{ fontSize: 28 }}
+              color="secondary"
+            />
+          )}
+        </IconButton>
+        <IconButton
+          disableRipple
+          aria-label="Stop"
           onClick={this.toggleMasterStop}
           disabled={!this.state.masterPlay}
         >
-          {/* <img src="images/daw/stop.png" alt="Stop"></img> */}
-          Stop
-        </button>
-        <button
+          <StopRoundedIcon style={{ fontSize: 35 }} />
+        </IconButton>
+        <IconButton
+          disableRipple
+          aria-label="Play"
+          onClick={this.toggleMasterPlay}
           disabled={this.state.masterPlay}
-          onClick={this.toggleMasterRecord}
+          style={{ marginLeft: "-5px" }}
         >
-          {/* <img src="images/daw/record.png" alt="Record"></img> */}
-          Record
-        </button>{" "}
+          <PlayArrowRoundedIcon style={{ fontSize: 35 }} />
+        </IconButton>{" "}
         <button onClick={this.test}>Test</button>{" "}
         {this.formattedTime(this.state.runningTime)}
         <div
           style={{
-            display: "inline-block",
-            marginLeft: "10px",
-            marginRight: "10px",
+            position: "absolute",
+            marginLeft: "290px",
+            marginTop: "-45px",
             width: "100px",
           }}
         >
@@ -319,7 +337,6 @@ class DAW extends Component {
             onChange={this.changeVolume}
           />
         </div>
-        {/* <div className="line"></div> */}
         {this.state.showCountdown && (
           <div className="timer" style={{ marginTop: "10px" }}>
             <CountdownCircleTimer

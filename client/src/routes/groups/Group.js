@@ -3,11 +3,21 @@ import Project from "./Project";
 import "./Group.css";
 import { Prompt, Confirm } from "react-st-modal";
 
+import IconButton from "@material-ui/core/IconButton";
+import Menu from "@material-ui/core/Menu";
+import MenuItem from "@material-ui/core/MenuItem";
+import MoreHorizIcon from "@material-ui/icons/MoreHoriz";
+
+const RENAME_GROUP_OPTION = "Rename Group";
+const DELETE_GROUP_OPTION = "Delete Group";
+const options = [RENAME_GROUP_OPTION, DELETE_GROUP_OPTION];
+
 class Group extends Component {
   constructor(props) {
     super(props);
     this.state = {
       projects: props.projects,
+      threeDotsAnchorElement: null,
     };
     this.createNewProject = this.createNewProject.bind(this);
     this.deleteProject = this.deleteProject.bind(this);
@@ -111,44 +121,77 @@ class Group extends Component {
     }
   }
 
+  clickThreeDotsMenu = (e) => {
+    this.setState({ threeDotsAnchorElement: e.currentTarget });
+  };
+
+  closeThreeDotsMenu = (e) => {
+    const option = e.target.innerText;
+    if (option === RENAME_GROUP_OPTION) {
+      this.props.renameGroup(this.props.id, this.props.name);
+    } else if (option === DELETE_GROUP_OPTION) {
+      this.props.deleteGroup(this.props.id, this.props.name);
+    }
+    this.setState({ threeDotsAnchorElement: null });
+  };
+
   render() {
     return (
       <div>
         <h3>
           Group Name: {this.props.name}{" "}
           <button onClick={this.createNewProject}>+ New Project</button>
+          <IconButton
+            aria-label="more"
+            aria-controls="group-menu"
+            aria-haspopup="true"
+            onClick={this.clickThreeDotsMenu}
+            style={{ marginLeft: "5px" }}
+          >
+            <MoreHorizIcon />
+          </IconButton>
+          <Menu
+            id="group-menu"
+            anchorEl={this.state.threeDotsAnchorElement}
+            keepMounted
+            open={this.state.threeDotsAnchorElement !== null}
+            onClose={this.closeThreeDotsMenu}
+            PaperProps={{
+              style: {
+                maxHeight: 40 * 4.5,
+                width: "20ch",
+              },
+            }}
+          >
+            {options.map((option) => (
+              <MenuItem key={option} onClick={this.closeThreeDotsMenu}>
+                {option}
+              </MenuItem>
+            ))}
+          </Menu>
         </h3>
-        <ul>
-          {this.state.projects && this.state.projects.length === 0 && (
-            <p className="text-muted">No projects created yet!</p>
-          )}
-          {this.state.projects.map((projectInfo, i) => (
-            <div key={`project_${i}`}>
-              <div>
-                <Project
-                  project={projectInfo}
-                  group_name={this.props.name}
-                  group_id={this.props.id}
-                />
-                <button
-                  onClick={() =>
-                    this.renameProject(projectInfo.id, projectInfo.project_name)
-                  }
-                >
-                  Rename Project
-                </button>
-                <button
-                  style={{ marginBottom: "10px" }}
-                  onClick={() =>
-                    this.deleteProject(projectInfo.id, projectInfo.project_name)
-                  }
-                >
-                  Delete Project
-                </button>
+        <div style={{ marginTop: "-25px" }}>
+          <ul>
+            {this.state.projects && this.state.projects.length === 0 && (
+              <p className="text-muted" style={{ marginTop: "25px" }}>
+                No projects created yet!
+              </p>
+            )}
+            {this.state.projects.map((projectInfo, i) => (
+              <div key={`project_${i}`}>
+                <div style={{ marginTop: "-20px", marginBottom: "-10px" }}>
+                  <Project
+                    project={projectInfo}
+                    group_name={this.props.name}
+                    group_id={this.props.id}
+                    renameProject={this.renameProject}
+                    deleteProject={this.deleteProject}
+                  />
+                </div>
               </div>
-            </div>
-          ))}
-        </ul>
+            ))}
+          </ul>
+        </div>
       </div>
     );
   }
