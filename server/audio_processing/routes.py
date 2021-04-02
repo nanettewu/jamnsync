@@ -367,7 +367,7 @@ def create_take():
         os.remove(filepath) # don't save file
         return f"file exceeds {NUM_MEGABYTES}B", HTTPStatus.REQUEST_ENTITY_TOO_LARGE
 
-    # ! TODO: CLEAN THIS UP PLEASE
+    # adds buffer to audio track if not a backing track
     song = AudioSegment.from_file(filepath)
     if buffer_duration == 0:
         buffered_song = AudioSegment.silent(duration=buffer_duration) + song
