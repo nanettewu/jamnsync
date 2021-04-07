@@ -23,8 +23,12 @@ NUM_MEGABYTES = 50
 MAX_FILE_LENGTH = NUM_MEGABYTES * MEGABYTE
 
 @app.route('/')
-def entry_point():
-    return 'Hello World!'
+def index():
+    return app.send_static_file('index.html')
+
+@app.errorhandler(404)
+def not_found(e):
+    return app.send_static_file('index.html')
 
 # uploads file to upload/ directory in s3 bucket
 @app.route('/upload',methods=['post'])

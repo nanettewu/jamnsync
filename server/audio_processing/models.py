@@ -63,7 +63,7 @@ class RehearsalGroup(db.Model):
   id = db.Column(db.Integer, primary_key=True)
   group_name = db.Column(db.String, unique=True, nullable=False)
   projects = db.relationship('Project', cascade="all,delete", backref='group') # one-to-many
-  users = db.relationship('User', secondary=group_membership, lazy="dynamic")
+  users = db.relationship('User', secondary=group_membership, back_populates="groups")
   
 @dataclass
 class User(db.Model, UserMixin):
@@ -78,7 +78,7 @@ class User(db.Model, UserMixin):
   google_email = db.Column(db.String, unique=True, nullable=False)
   google_auth_id = db.Column(db.String, unique=True, nullable=False)
   latency_ms = db.Column(db.Integer)
-  groups = db.relationship('RehearsalGroup', secondary=group_membership)
+  groups = db.relationship('RehearsalGroup', secondary=group_membership, back_populates="users")
 
   def __repr__(self):
     return f"User ID #{self.id}: {self.user_name} | {self.google_email}"
