@@ -11,6 +11,7 @@ coverage/
 # production
 build/
 .env
+venv
 
 # misc
 .DS_Store
@@ -29,17 +30,12 @@ client/src/routes/temp-jitsi/*
 client/src/routes/temp-webaudio/*
 
 # python server
-server/.env/*
-server/__pycache__
-server/audio_processing/__pycache__
-server/migrations/__pycache__
-server/migrations/versions/__pycache__
+__pycache__
+s3_downloads
+s3_uploads
+experiments
+database.ini
 
-server/experiments/*
-server/audio_processing/s3_downloads/*
-server/audio_processing/s3_uploads/*
-
-server/database.ini
 
 
 

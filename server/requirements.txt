@@ -8,8 +8,10 @@ docutils
 ffmpeg
 Flask
 Flask-Login
+Flask-Heroku
 Flask-Migrate
 Flask-SQLAlchemy
+gunicorn
 itsdangerous
 Jinja2
 jmespath
@@ -20,7 +22,6 @@ psycopg2-binary
 pyasn1
 pydub
 python-dateutil
-python-dotenv
 python-editor
 pytz
 PyYAML
