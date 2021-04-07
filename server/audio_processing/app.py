@@ -9,18 +9,8 @@ from dotenv import load_dotenv
 basedir = os.path.abspath(os.path.dirname(__file__))
 load_dotenv(os.path.join(basedir, '.env'))
 
-# config = configparser.ConfigParser()
-# config.read(os.path.join(os.path.dirname(__file__), 'database.ini'))
-
-# DATABASE_URI = 'postgresql+psycopg2://{dbuser}:{dbpass}@{dbhost}/{dbname}'.format(
-#     dbuser=config['postgres']['user'],
-#     dbpass=config['postgres']['password'],
-#     dbhost=config['postgres']['host'],
-#     dbname=config['postgres']['database']
-# )
-
 app = Flask(__name__, static_folder="../build", static_url_path='/')
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URI')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = os.environ.get("SECRET_KEY")
 
