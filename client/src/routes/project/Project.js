@@ -158,7 +158,7 @@ class Project extends Component {
   }
 
   createTake(track_id, file, latency) {
-    console.log("creating new take");
+    console.log("creating new take for", track_id);
     const formData = new FormData();
     formData.append("track_id", track_id);
     formData.append("file", file);

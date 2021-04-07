@@ -1,19 +1,21 @@
-import MicRecorder from "mic-recorder-to-mp3";
 import React, { Component } from "react";
 import "./DAW.css";
 import Track from "./Track";
 import { CountdownCircleTimer } from "react-countdown-circle-timer";
-import { CustomDialog } from "react-st-modal"; // https://github.com/Nodlik/react-st-modal
-import AlignRecordingModalContent from "./AlignRecording";
+// import { CustomDialog } from "react-st-modal"; // https://github.com/Nodlik/react-st-modal
+// import AlignRecordingModalContent from "./AlignRecording";
 import Slider from "rc-slider";
 import "rc-slider/assets/index.css";
+import vmsg from "vmsg"; // https://github.com/Kagami/vmsg
 
 import IconButton from "@material-ui/core/IconButton";
 import PlayArrowRoundedIcon from "@material-ui/icons/PlayArrowRounded";
 import StopRoundedIcon from "@material-ui/icons/StopRounded";
 import FiberManualRecordRoundedIcon from "@material-ui/icons/FiberManualRecordRounded";
 
-const Mp3Recorder = new MicRecorder({ bitRate: 128 });
+const recorder = new vmsg.Recorder({
+  wasmURL: "https://unpkg.com/vmsg@0.3.0/vmsg.wasm", // ! TODO
+});
 
 class DAW extends Component {
   constructor() {
@@ -28,10 +30,11 @@ class DAW extends Component {
       showCountdown: false,
       runningTime: 0,
       soloTracks: [],
-      masterVolume: 0.75,
+      masterVolume: 0.5,
     };
+    this.toggleMasterRecord = this.toggleMasterRecord.bind(this);
     this.toggleMasterStop = this.toggleMasterStop.bind(this);
-    this.test = this.test.bind(this);
+    // this.test = this.test.bind(this);
   }
 
   componentDidUpdate() {
@@ -113,36 +116,57 @@ class DAW extends Component {
     }
     clearInterval(this.timer);
     this.setState({ masterStop: true, runningTime: 0 });
+    // let recordedURL, file;
     if (this.state.isRecording) {
-      Mp3Recorder.stop()
-        .getMp3()
-        .then(([buffer, blob]) => {
-          const file = new File(
-            [blob],
-            `recording_track_${this.state.selectedTrackId}.mp3`
-          );
-          const latency = -1; // in ms
-          this.createTake(this.state.selectedTrackId, file, latency);
-          this.setState({ isRecording: false, masterRecord: false });
-        })
-        .catch((e) => console.log(e));
+      const blob = await recorder.stopRecording();
+      // Mp3Recorder.stop()
+      //   .getMp3()
+      //   .then(([buffer, blob]) => {
+      let file = new File(
+        [blob],
+        `recording_track_${this.state.selectedTrackId}.mp3`
+      );
+      let recordedURL = URL.createObjectURL(file);
+      console.log(recordedURL);
+      //   return { file: file, recordedURL: recordedURL };
+      // })
+      // .then(async (obj) => {
+      let latency = -1; // in ms
       if (Object.keys(this.props.trackMetadata).length > 1) {
-        await CustomDialog(<AlignRecordingModalContent />, {
-          title: "Check Recording",
-          showCloseIcon: true,
-        });
+        // ! TODO
+        // latency = await CustomDialog(
+        //   <AlignRecordingModalContent
+        //     recordedURL={recordedURL}
+        //     recordedTrackId={this.state.selectedTrackId}
+        //     trackMetadata={this.props.trackMetadata}
+        //   />,
+        //   {
+        //     title: "Check Recording",
+        //     showCloseIcon: true,
+        //   }
+        // );
+        // console.log("latency:", latency);
       }
+      this.createTake(this.state.selectedTrackId, file, latency); // ! TODO
+      this.setState({ isRecording: false, masterRecord: false });
+      // })
+      // .catch((e) => console.log(e));
     }
   }
 
-  async test() {
-    await CustomDialog(<AlignRecordingModalContent />, {
-      title: "Check Recording",
-      showCloseIcon: true,
-    });
-  }
+  // async test() {
+  //   const latency = await CustomDialog(
+  //     <AlignRecordingModalContent recordedURL={"test1"} />,
+  //     {
+  //       title: "Check Recording",
+  //       showCloseIcon: true,
+  //     }
+  //   );
+  //   console.log("latency:", latency);
+  // }
 
-  toggleMasterRecord = () => {
+  // https://codesandbox.io/s/v67oz43lm7?file=/src/index.js
+  async toggleMasterRecord() {
     console.log("master record!");
     if (this.state.isBlocked) {
       console.log("Permission Denied");
@@ -151,26 +175,20 @@ class DAW extends Component {
       alert("Select a track to record!");
     } else {
       console.log("recording" + this.state.selectedTrackId);
-      Mp3Recorder.start();
-      // .then(() => {
-      // console.log("setting state for recording");
-      // this.setState({ isRecording: true });
-      // })
-      // .catch((e) => console.error(e));
+      // Mp3Recorder.start();
+      await recorder.initAudio();
+      await recorder.initWorker();
+      recorder.startRecording();
+
       this.setState((state) => {
-        // const startTime = Date.now() - this.state.runningTime;
-        // this.timer = setInterval(() => {
-        //   this.setState({ runningTime: Date.now() - startTime });
-        // });
         return {
           masterRecord: true,
-          // masterPlay: true,
           showCountdown: true,
           isRecording: true,
         };
       });
     }
-  };
+  }
 
   handleFileUpload = (files, targetId) => {
     console.log("handling file upload");
@@ -319,12 +337,12 @@ class DAW extends Component {
         >
           <PlayArrowRoundedIcon style={{ fontSize: 35 }} />
         </IconButton>{" "}
-        <button onClick={this.test}>Test</button>{" "}
+        {/* <button onClick={this.test}>Test</button>{" "} */}
         {this.formattedTime(this.state.runningTime)}
         <div
           style={{
             position: "absolute",
-            marginLeft: "290px",
+            marginLeft: "245px",
             marginTop: "-45px",
             width: "100px",
           }}

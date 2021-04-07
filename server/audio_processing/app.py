@@ -16,11 +16,9 @@ DATABASE_URI = 'postgresql+psycopg2://{dbuser}:{dbpass}@{dbhost}/{dbname}'.forma
 )
 
 app = Flask(__name__)
-app.config.update(
-    SQLALCHEMY_DATABASE_URI=DATABASE_URI,
-    SQLALCHEMY_TRACK_MODIFICATIONS=False,
-    SECRET_KEY=os.environ.get("SECRET_KEY")
-)
+app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URI
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SECRET_KEY'] = os.environ.get("SECRET_KEY")
 
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)

@@ -10,6 +10,7 @@
     "@testing-library/react": "^11.1.2",
     "@testing-library/user-event": "^12.2.2",
     "axios": "^0.21.1",
+    "crunker": "^0.4.1",
     "ffmpeg": "^0.0.4",
     "howler": "^2.2.1",
     "lamejs": "^1.2.0",
@@ -24,11 +25,13 @@
     "react-google-login": "^5.1.22",
     "react-jutsu": "^3.0.1",
     "react-mic": "^12.4.6",
+    "react-mp3-recorder": "^1.1.2",
     "react-router-dom": "^5.2.0",
     "react-scripts": "4.0.0",
     "react-st-modal": "^1.1.3",
     "react-use-audio-player": "^1.2.4",
     "videojs-record": "^4.1.1",
+    "vmsg": "^0.3.6",
     "web-vitals": "^0.2.4"
   },
   "scripts": {
