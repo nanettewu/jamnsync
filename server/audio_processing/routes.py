@@ -1,5 +1,5 @@
 from flask import current_app as app
-from flask import request, send_file, jsonify, Response, abort
+from flask import request, send_file, jsonify, Response, abort, redirect
 from flask_login import current_user, login_required
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import and_
@@ -22,6 +22,18 @@ MEGABYTE = 1024 * 1024
 NUM_MEGABYTES = 50
 MAX_FILE_LENGTH = NUM_MEGABYTES * MEGABYTE
 
+# https://stackoverflow.com/questions/32237379/python-flask-redirect-to-https-from-http
+@app.before_request
+def force_https():
+    if app.env == "development":
+        return
+    if request.is_secure:
+        return
+
+    url = request.url.replace("http://", "https://", 1)
+    code = 301
+    return redirect(url, code=code)
+
 @app.route('/')
 def index():
     return app.send_static_file('index.html')
@@ -29,24 +41,6 @@ def index():
 @app.errorhandler(404)
 def not_found(e):
     return app.send_static_file('index.html')
-
-# uploads file to upload/ directory in s3 bucket
-@app.route('/upload',methods=['post'])
-def upload():
-    if request.method == 'POST':
-        f = request.files['file']
-        filename = f.filename
-        f.save(os.path.join(UPLOAD_FOLDER, filename))
-        upload_file(filename)
-        return f"Uploaded file: {filename}"
-
-# downloads file from s3 bucket
-@app.route('/download/<filename>',methods=['get'])
-def download(filename):
-    if request.method == 'GET':
-        output = download_file(filename)
-        # send file destination relative to audio_processing dir
-        return send_file(output, as_attachment=True)
 
 ############################################################################
 # API
@@ -355,7 +349,6 @@ def create_take():
         return f"could not find track (id: {track_id})", HTTPStatus.NOT_FOUND
     
     # file validation: verify file exists + is valid audio file
-    print("validating file")
     f = request.files['file']
     if not f:
         return "no file to upload", HTTPStatus.BAD_REQUEST
