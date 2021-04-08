@@ -12,8 +12,8 @@ import Crunker from "crunker"; // https://github.com/jackedgson/crunker
 
 // const backing = "audio/kq/KillerQueen_bg.wav";
 // const recording = "audio/kq/KillerQueen_solo.wav";
-// const backing = "audio/click.mp3";
-// const recording = "audio/off_kovacs.mp3";
+const backing = "audio/click.mp3";
+const recording = "audio/off_kovacs.mp3";
 
 export default function AlignRecordingModalContent(props) {
   const crunker = new Crunker();
@@ -41,12 +41,9 @@ export default function AlignRecordingModalContent(props) {
         waveColor: "#D9DCFF",
         progressColor: "#4353FF",
         cursorColor: "#4353FF",
-        // barWidth: 3,
-        // barRadius: 3,
         cursorWidth: 1,
         height: 200,
         width: 1000,
-        // barGap: 3,
         interact: false,
         hideScrollbar: true,
       })
@@ -57,12 +54,9 @@ export default function AlignRecordingModalContent(props) {
         waveColor: "#D9DCFF",
         progressColor: "#4353FF",
         cursorColor: "#4353FF",
-        // barWidth: 3,
-        // barRadius: 3,
         cursorWidth: 1,
         height: 200,
         width: 1000,
-        // barGap: 3,
         interact: false,
         hideScrollbar: true,
       })
@@ -80,39 +74,50 @@ export default function AlignRecordingModalContent(props) {
     console.log("loading recordings");
     console.log(props.recordedURL, props.recordedTrackId, props.trackMetadata);
     if (bgWaveSurfer && recWaveSurfer && !loadedAudio) {
-      let nonRecordedTrackURLs = Object.keys(props.trackMetadata)
-        .filter((trackId) => {
-          return trackId !== props.recordedTrackId;
-        })
-        .map((trackId) => {
-          // TODO: made executive decision to just pick latest track, but eventually need to fix how take state is stored so DAW Object can access it
-          const takeId = Object.keys(props.trackMetadata[trackId].takes).pop();
-          const audio_url = props.trackMetadata[trackId].takes[takeId].s3_info;
-          return audio_url;
-        });
-      console.log(nonRecordedTrackURLs);
-      crunker
-        .fetchAudio(...nonRecordedTrackURLs)
-        .then((buffers) => {
-          // => [AudioBuffer, AudioBuffer]
-          return crunker.mergeAudio(buffers);
-        })
-        .then((merged) => {
-          // => AudioBuffer
-          return crunker.export(merged, "audio/mp3");
-        })
-        .then((output) => {
-          // => {blob, element, url}
-          bgWaveSurfer.load(output.url);
-          recWaveSurfer.load(props.recordedURL);
+      // let nonRecordedTrackURLs = Object.keys(props.trackMetadata)
+      //   .filter((trackId) => {
+      //     return trackId !== props.recordedTrackId;
+      //   })
+      //   .map((trackId) => {
+      //     // TODO: made executive decision to just pick latest track, but eventually need to fix how take state is stored so DAW Object can access it
+      //     const takeId = Object.keys(props.trackMetadata[trackId].takes).pop();
+      //     const audio_url = props.trackMetadata[trackId].takes[takeId].s3_info;
+      //     return audio_url;
+      //   });
+      // console.log(nonRecordedTrackURLs);
+      // crunker
+      //   .fetchAudio(...nonRecordedTrackURLs)
+      //   .then((buffers) => {
+      //     // => [AudioBuffer, AudioBuffer]
+      //     return crunker.mergeAudio(buffers);
+      //   })
+      //   .then((merged) => {
+      //     // => AudioBuffer
+      //     return crunker.export(merged, "audio/mp3");
+      //   })
+      //   .then((output) => {
+      //     // => {blob, element, url}
+      //     bgWaveSurfer.load(output.url);
+      //     recWaveSurfer.load(props.recordedURL);
 
-          bgWaveSurfer.setVolume(0.3);
-          recWaveSurfer.setVolume(0.2);
+      //     bgWaveSurfer.setVolume(0.3);
+      //     recWaveSurfer.setVolume(0.2);
 
-          bgWaveSurfer.zoom(80);
-          recWaveSurfer.zoom(80);
-          setLoadedAudio(true);
-        });
+      //     bgWaveSurfer.zoom(80);
+      //     recWaveSurfer.zoom(80);
+      //     setLoadedAudio(true);
+      //   });
+
+      // !TODO REMOVE LATER, ONLY FOR TEST
+      bgWaveSurfer.load(backing);
+      recWaveSurfer.load(recording);
+
+      bgWaveSurfer.setVolume(0.3);
+      recWaveSurfer.setVolume(0.2);
+
+      bgWaveSurfer.zoom(80);
+      recWaveSurfer.zoom(80);
+      setLoadedAudio(true);
     }
   }, [bgWaveSurfer, recWaveSurfer, loadedAudio, crunker, props]); // TODO check
 
@@ -150,8 +155,10 @@ export default function AlignRecordingModalContent(props) {
             recWaveSurfer.params.scrollParent = false;
 
             bgWaveSurfer.seekTo(0);
-            console.log(recWaveSurfer.getDuration());
-            recWaveSurfer.seekAndCenter(3 / recWaveSurfer.getDuration());
+            recWaveSurfer.seekAndCenter(0);
+
+            // ! TODO UNCOMMENT THIS
+            // recWaveSurfer.seekAndCenter(3 / recWaveSurfer.getDuration());
 
             if (dragOffset > 0) {
               console.log("[recorded early]: user wants to playback later");
@@ -164,7 +171,6 @@ export default function AlignRecordingModalContent(props) {
               console.log("[recorded late]: user wants to playback earlier");
               const latency = -latencyMagnitude;
               console.log(latency);
-              // recWaveSurfer.seekTo(latency / 1000);
               bgWaveSurfer.play(null, 7);
               recWaveSurfer.play(
                 latencyMagnitude / 1000,

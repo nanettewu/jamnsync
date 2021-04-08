@@ -2,8 +2,8 @@ import React, { Component } from "react";
 import "./DAW.css";
 import Track from "./Track";
 import { CountdownCircleTimer } from "react-countdown-circle-timer";
-// import { CustomDialog } from "react-st-modal"; // https://github.com/Nodlik/react-st-modal
-// import AlignRecordingModalContent from "./AlignRecording";
+import { CustomDialog } from "react-st-modal"; // https://github.com/Nodlik/react-st-modal
+import AlignRecordingModalContent from "./AlignRecording";
 import Slider from "rc-slider";
 import "rc-slider/assets/index.css";
 import vmsg from "vmsg"; // https://github.com/Kagami/vmsg
@@ -154,16 +154,16 @@ class DAW extends Component {
     }
   }
 
-  // async test() {
-  //   const latency = await CustomDialog(
-  //     <AlignRecordingModalContent recordedURL={"test1"} />,
-  //     {
-  //       title: "Check Recording",
-  //       showCloseIcon: true,
-  //     }
-  //   );
-  //   console.log("latency:", latency);
-  // }
+  async test() {
+    const latency = await CustomDialog(
+      <AlignRecordingModalContent recordedURL={"test1"} />,
+      {
+        title: "Check Recording",
+        showCloseIcon: true,
+      }
+    );
+    console.log("latency:", latency);
+  }
 
   // https://codesandbox.io/s/v67oz43lm7?file=/src/index.js
   async toggleMasterRecord() {
@@ -337,12 +337,12 @@ class DAW extends Component {
         >
           <PlayArrowRoundedIcon style={{ fontSize: 35 }} />
         </IconButton>{" "}
-        {/* <button onClick={this.test}>Test</button>{" "} */}
+        <button onClick={this.test}>Test</button>{" "}
         {this.formattedTime(this.state.runningTime)}
         <div
           style={{
             position: "absolute",
-            marginLeft: "245px",
+            marginLeft: "285px",
             marginTop: "-45px",
             width: "100px",
           }}
