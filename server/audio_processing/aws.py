@@ -1,7 +1,7 @@
 import os
 import boto3 # aws sdk for python
 
-UPLOAD_FOLDER="audio_processing/s3_uploads"
+UPLOAD_FOLDER="s3_uploads"
 BUCKET = "jamnsync"
 
 # source: https://stackabuse.com/file-management-with-aws-s3-python-and-flask/
@@ -15,7 +15,10 @@ def upload_take(filename, project_hash, track_id, take_num, current_time):
     parts = filename.rsplit('.', 1)
     modified_filename = f"track{track_id}_take{take_num}_{formatted_timestamp}.{parts[1]}"
 
-    filepath = f"{UPLOAD_FOLDER}/{filename}" #source
+    base_dir = os.path.dirname(os.path.realpath(__file__))
+    filepath = os.path.join(base_dir, UPLOAD_FOLDER, filename) # source
+    print("uploaded file located at:", filepath)
+    print("current dir:", os.getcwd())
     key_name = f"projects/{project_hash}/{modified_filename}" #destination
     boto3.client('s3').upload_file(filepath, BUCKET, key_name)
     print(f"Successfully uploaded take: {key_name}")
@@ -40,37 +43,3 @@ def delete_project(project_hash):
     bucket = boto3.resource('s3').Bucket(BUCKET)
     bucket.objects.filter(Prefix=project_path).delete()
     print(f"Successfully deleted project: {project_hash}")
-
-############################################################################
-# Testing
-############################################################################
-
-def upload_file(filename):
-    """
-    Test function to upload a file to an S3 bucket
-    """
-    filepath = f"{UPLOAD_FOLDER}/{filename}"
-    key_name = f"testing/{filename}" 
-    boto3.client('s3').upload_file(filepath, BUCKET, key_name)
-    
-def download_file(filename):
-    """
-    Test function to download a given file from an S3 bucket
-    """
-    output = f"s3_downloads/{filename}"
-    # download destination relative to server dir
-    s3 = boto3.resource('s3')
-    s3.Bucket(BUCKET).download_file(filename, f"audio_processing/{output}")
-
-    return output
-
-def list_files():
-    """
-    Function to list files in a given S3 bucket
-    """
-    s3 = boto3.client('s3')
-    contents = []
-    for item in s3.list_objects(Bucket=BUCKET)['Contents']:
-        contents.append(item)
-
-    return contents

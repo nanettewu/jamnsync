@@ -33,5 +33,4 @@ unused
 # python server
 __pycache__
 s3_downloads
-s3_uploads
 experiments

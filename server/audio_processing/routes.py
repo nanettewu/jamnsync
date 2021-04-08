@@ -11,12 +11,12 @@ import datetime
 import pytz
 
 from audio_processing.app import db
-from audio_processing.aws import list_files, upload_file, download_file, upload_take, delete_take, delete_project
+from audio_processing.aws import upload_take, delete_take, delete_project
 from audio_processing.models import User, RehearsalGroup, group_membership, Project, Track, Take
 
 from pydub import AudioSegment
 
-UPLOAD_FOLDER="audio_processing/s3_uploads"
+UPLOAD_FOLDER="s3_uploads"
 AUDIO_EXTS = ("mp3", "ogg", "wav", "flac", "aac", "aiff", "m4a")
 MEGABYTE = 1024 * 1024
 NUM_MEGABYTES = 50
@@ -357,8 +357,9 @@ def create_take():
         return f"please upload a valid audio file of type {AUDIO_EXTS}", HTTPStatus.BAD_REQUEST
     
     # save file, verify audio file is appropriately sized (under 50 MB)
-    filepath = os.path.join(UPLOAD_FOLDER, filename)
-    f.save(os.path.join(UPLOAD_FOLDER, filename))
+    base_dir = os.path.dirname(os.path.realpath(__file__))
+    filepath = os.path.join(base_dir, UPLOAD_FOLDER, filename)
+    f.save(filepath)
     file_length = os.stat(filepath).st_size
     if file_length > MAX_FILE_LENGTH:
         os.remove(filepath) # don't save file
