@@ -10,6 +10,19 @@ class Groups extends Component {
       groups: [],
       isLoaded: false,
     };
+    this.fetchGroups();
+    this.createNewGroup = this.createNewGroup.bind(this);
+    this.deleteGroup = this.deleteGroup.bind(this);
+    this.renameGroup = this.renameGroup.bind(this);
+  }
+
+  componentDidUpdate() {
+    if (!this.state.isLoaded) {
+      this.fetchGroups();
+    }
+  }
+
+  fetchGroups() {
     fetch("/api/groups", {
       method: "GET",
     })
@@ -21,9 +34,6 @@ class Groups extends Component {
           this.setState({ groups: res.body, isLoaded: true });
         }
       });
-    this.createNewGroup = this.createNewGroup.bind(this);
-    this.deleteGroup = this.deleteGroup.bind(this);
-    this.renameGroup = this.renameGroup.bind(this);
   }
 
   async createNewGroup() {
