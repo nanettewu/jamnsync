@@ -25,16 +25,13 @@ yarn-debug.log*
 yarn-error.log*
 
 # client 
-client/src/routes/archived/*
-client/src/routes/temp-jitsi/*
-client/src/routes/temp-webaudio/*
+archived
+temp-jitsi
+temp-webaudio
+unused
 
 # python server
 __pycache__
 s3_downloads
 s3_uploads
 experiments
-
-
-
-

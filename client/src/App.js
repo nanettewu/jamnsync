@@ -104,26 +104,20 @@ class App extends Component {
               </li>
             )}
             {this.state.isUserLoggedIn && (
-              <div>
-                <li>
-                  <NavLink to="/groups">Groups</NavLink>
-                </li>
-                <li>
-                  <NavLink to="/project">Project</NavLink>
-                </li>
-                {/* <li>
-                  <NavLink to="/jitsi">Jitsi (temp)</NavLink>
-                </li> */}
-                {/* <li>
-                  <NavLink to="/webaudio">Web Audio (temp)</NavLink>
-                </li> */}
-              </div>
+              <li>
+                <NavLink to="/groups">Groups</NavLink>
+              </li>
+            )}
+            {this.state.isUserLoggedIn && (
+              <li>
+                <NavLink to="/project">Project</NavLink>
+              </li>
             )}
           </ul>
 
           <div className="content">
             <Route exact path="/">
-              {this.state.isUserLoggedIn ? (
+              {this.state.isUserLoggedIn && pathname !== "/" ? (
                 <Redirect to={pathname} />
               ) : (
                 <Home />
@@ -136,12 +130,12 @@ class App extends Component {
             />
             <PrivateRoute
               exact
-              path={["/project", "/project/"]}
+              path={"/project"}
               component={ProjectSearch}
               authed={this.state.isUserLoggedIn}
             />
             <PrivateRoute
-              path="/project"
+              path="/project/"
               component={Project}
               authed={this.state.isUserLoggedIn}
             />
