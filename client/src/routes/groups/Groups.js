@@ -8,6 +8,7 @@ class Groups extends Component {
     super();
     this.state = {
       groups: [],
+      isLoaded: false,
     };
     fetch("/api/groups", {
       method: "GET",
@@ -17,7 +18,7 @@ class Groups extends Component {
       )
       .then((res) => {
         if (res.status !== 400) {
-          this.setState({ groups: res.body });
+          this.setState({ groups: res.body, isLoaded: true });
         }
       });
     this.createNewGroup = this.createNewGroup.bind(this);
@@ -119,6 +120,9 @@ class Groups extends Component {
   }
 
   render() {
+    if (!this.state.isLoaded) {
+      return <div>Loading...</div>;
+    }
     return (
       <div>
         <h2>GROUPS</h2>
