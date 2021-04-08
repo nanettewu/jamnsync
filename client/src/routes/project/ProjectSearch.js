@@ -1,13 +1,12 @@
 import React, { useState } from "react";
-import { Redirect } from "react-router";
 
 // mimics Zoom's search functionality (i.e. if you enter mit.zoom.us/j/ without any ID)
-function ProjectSearch() {
+function ProjectSearch(props) {
   const [projectId, setProjectId] = useState("");
-  const [redirect, setRedirect] = useState(false);
 
-  const searchProject = () => {
+  const searchProject = (e) => {
     console.log("projectId", projectId);
+    e.preventDefault();
     fetch("/api/project?" + new URLSearchParams({ project_hash: projectId }))
       .then((resp) =>
         resp.json().then((data) => ({ status: resp.status, body: data }))
@@ -15,7 +14,7 @@ function ProjectSearch() {
       .then((obj) => {
         console.log(obj);
         if (obj.status === 200) {
-          setRedirect(true);
+          props.history.push(`/project/${projectId}`);
         }
       })
       .catch(function (err) {
@@ -24,17 +23,14 @@ function ProjectSearch() {
   };
 
   const handleChange = (e) => {
-    // url
+    e.preventDefault();
+    // parse project id out of url
     if (e.target.value.startsWith("http")) {
       setProjectId(e.target.value.split("/").pop());
     } else {
       setProjectId(e.target.value);
     }
   };
-
-  if (redirect) {
-    return <Redirect to={`/project/${projectId}`} />;
-  }
 
   return (
     <div>

@@ -23,18 +23,36 @@ class Project extends Component {
   }
 
   componentDidMount() {
-    this.retrieveProject();
+    this.retrieveProject(this.state.project_hash);
   }
 
-  retrieveProject = () => {
-    console.log("retrieving project: " + this.state.project_hash);
-    if (this.state.project_hash === null || this.state.project_hash === "") {
+  componentDidUpdate(prevProps) {
+    const pathname = this.props.location.pathname.split("/").pop();
+    // fetch project if last page was project search page
+    if (
+      pathname !== "project" &&
+      pathname !== null &&
+      this.props.location.pathname !== prevProps.location.pathname
+    ) {
+      this.retrieveProject(pathname);
+      // loaded project search page
+    } else if (pathname === "project" && this.state.project_hash !== null) {
+      this.setState({
+        project_hash: null,
+        project_name: null,
+        group_name: null,
+        project_id: null,
+        track_metadata: null,
+      });
+    }
+  }
+
+  retrieveProject = (project_hash) => {
+    console.log("retrieving project: " + project_hash);
+    if (project_hash === null || project_hash === "") {
       return;
     }
-    fetch(
-      "/api/project?" +
-        new URLSearchParams({ project_hash: this.state.project_hash })
-    )
+    fetch("/api/project?" + new URLSearchParams({ project_hash: project_hash }))
       .then((resp) =>
         resp.json().then((data) => ({ status: resp.status, body: data }))
       )
@@ -59,6 +77,7 @@ class Project extends Component {
           : {};
         if (obj.status === 200) {
           this.setState({
+            project_hash: project_hash,
             project_name: obj.body.project_name,
             group_name: obj.body.group.group_name,
             project_id: obj.body.id,
@@ -208,6 +227,12 @@ class Project extends Component {
 
   render() {
     const pathSuffix = this.props.location.pathname.split("/").pop();
+
+    // show loading screen if have not retrieved data yet
+    if (this.state.project_name === null && pathSuffix !== "project") {
+      return <div>Loading...</div>;
+    }
+
     return (
       this.state.project_hash &&
       pathSuffix !== "project" &&
