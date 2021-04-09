@@ -341,6 +341,7 @@ def get_update_delete_track():
 def create_take():
     track_id = request.form.get('track_id')
     buffer_duration = int(request.form.get('latency')) if request.form.get('latency') else 0
+    user_timezone_offset = -1 * int(request.form.get('tz_offset')) if request.form.get('tz_offset') else 0
     print("buffer duration", buffer_duration)
     if not track_id or (track_id and not track_id.isdigit()) or ('file' not in request.files):
         return abort(HTTPStatus.BAD_REQUEST)
@@ -386,8 +387,10 @@ def create_take():
         if int(take.take) >= new_take_number:
             new_take_number = int(take.take) + 1
     
-    current_time = datetime.datetime.now(datetime.timezone.utc)
-    s3_info = upload_take(filename, project_hash, track_id, new_take_number, current_time)
+    current_time_utc = datetime.datetime.now(datetime.timezone.utc)
+    tzinfo = datetime.timezone(datetime.timedelta(hours=user_timezone_offset))
+    current_time_user_timezone = datetime.datetime.now(tzinfo)
+    s3_info = upload_take(filename, project_hash, track_id, new_take_number, current_time_user_timezone)
     if not s3_info:
         os.remove(filepath) # don't save file
         return f"no take URL found", HTTPStatus.BAD_REQUEST
@@ -397,7 +400,7 @@ def create_take():
         track_id=track_id,
         take=new_take_number,
         s3_info=s3_info,
-        date_uploaded=current_time,
+        date_uploaded=current_time_utc,
         latency_ms=buffer_duration,
     )
     db.session.add(new_take)
@@ -409,7 +412,7 @@ def create_take():
         os.remove(filepath) # don't save file
         db.session.rollback()
         return abort(HTTPStatus.BAD_REQUEST)
-    return jsonify({'message': f"created take #{new_take_number} for track id {track_id}", 'take_id': f"{new_take.id}", 'take': f"{new_take_number}", 's3_info': f"{s3_info}", 'timestamp': f"{current_time}"}), HTTPStatus.CREATED
+    return jsonify({'message': f"created take #{new_take_number} for track id {track_id}", 'take_id': f"{new_take.id}", 'take': f"{new_take_number}", 's3_info': f"{s3_info}", 'timestamp': f"{current_time_utc}"}), HTTPStatus.CREATED
 
 @app.route('/api/take', methods=['GET', 'DELETE'])
 @login_required

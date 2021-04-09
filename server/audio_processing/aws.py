@@ -11,7 +11,7 @@ def upload_take(filename, project_hash, track_id, take_num, current_time):
     Function to upload a take to an S3 bucket
     """
     # ex time: 2021_02_24-07_22_13_PM
-    formatted_timestamp = current_time.astimezone().strftime("%Y_%m_%d-%I_%M_%S_%p")
+    formatted_timestamp = current_time.strftime("%Y_%m_%d-%I_%M_%S_%p")
     parts = filename.rsplit('.', 1)
     modified_filename = f"track{track_id}_take{take_num}_{formatted_timestamp}.{parts[1]}"
 

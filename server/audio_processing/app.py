@@ -1,15 +1,26 @@
 import os
 from flask import Flask
+from flask.json import JSONEncoder
 from flask_sqlalchemy import SQLAlchemy 
 from flask_migrate import Migrate
 from flask_login import LoginManager
 import configparser
 from dotenv import load_dotenv
+from datetime import date
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 load_dotenv(os.path.join(basedir, '.env'))
 
-app = Flask(__name__, static_folder="../build", static_url_path='/')
+class MyJSONEncoder(JSONEncoder):
+    def default(self, o):
+        if isinstance(o, date):
+            return o.isoformat()
+        return super().default(o)
+
+class MyFlask(Flask):
+    json_encoder = MyJSONEncoder
+
+app = MyFlask(__name__, static_folder="../build", static_url_path='/')
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = os.environ.get("SECRET_KEY")
