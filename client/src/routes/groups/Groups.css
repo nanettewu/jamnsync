@@ -20,4 +20,5 @@
 .stitched:hover {
   color: rgb(135, 135, 135);
   border: 2px dashed rgb(135, 135, 135);
+  cursor: pointer;
 }

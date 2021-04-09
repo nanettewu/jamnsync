@@ -51,7 +51,7 @@ class App extends Component {
     fetch("/auth/login", requestOptions)
       .then((resp) => resp.json())
       .then((res) => {
-        console.log(res);
+        console.log(res.message);
       });
 
     localStorage.setItem("userDetails", JSON.stringify(userDetails));
@@ -63,7 +63,7 @@ class App extends Component {
     fetch("/auth/logout", { method: "POST" })
       .then((resp) => resp.json())
       .then((res) => {
-        console.log(res);
+        console.log(res.message);
       });
     localStorage.clear();
     this.setState({ userDetails: {}, isUserLoggedIn: false });

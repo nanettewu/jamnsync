@@ -25,9 +25,7 @@ class Group extends Component {
   }
 
   async createNewProject() {
-    const project_name = await Prompt("Name Your Project", {
-      isRequired: true,
-    });
+    const project_name = await Prompt("Name Your Project");
     if (project_name) {
       const formData = new FormData();
       formData.append("project_name", project_name);
@@ -88,7 +86,6 @@ class Group extends Component {
 
   async renameProject(id, name) {
     const new_name = await Prompt("Rename Your Project", {
-      isRequired: true,
       defaultValue: name,
     });
     if (new_name) {
@@ -137,10 +134,13 @@ class Group extends Component {
 
   render() {
     return (
-      <div>
+      <div style={{ marginTop: "-5px", marginBottom: "-15px" }}>
         <h3>
-          Group Name: {this.props.name}{" "}
-          <button onClick={this.createNewProject}>+ New Project</button>
+          {this.props.name}
+          {"  "}
+          <button style={{ marginLeft: "5px" }} onClick={this.createNewProject}>
+            + New Project
+          </button>
           <IconButton
             aria-label="more"
             aria-controls="group-menu"

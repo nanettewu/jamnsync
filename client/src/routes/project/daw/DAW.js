@@ -26,7 +26,7 @@ class DAW extends Component {
       masterRecord: false,
       isRecording: false,
       selectedTrackId: null, // to record
-      isBlocked: false,
+      isBlocked: true,
       showCountdown: false,
       runningTime: 0,
       soloTracks: [],
@@ -49,17 +49,17 @@ class DAW extends Component {
 
   componentDidMount() {
     console.log("reloading DAW");
-    navigator.mediaDevices.getUserMedia(
-      { audio: true },
-      () => {
-        console.log("Permission Granted");
+    navigator.mediaDevices
+      .getUserMedia({ audio: true })
+      .then(() => {
+        console.log("mic permission granted");
         this.setState({ isBlocked: false });
-      },
-      () => {
-        console.log("Permission Denied");
+      })
+      .catch(() => {
+        console.log("MIC PERMISSIOM DENIED");
         this.setState({ isBlocked: true });
-      }
-    );
+      });
+
     this.setState({
       isRecording: false,
       masterRecord: false,
@@ -99,7 +99,7 @@ class DAW extends Component {
   // PLAYBACK OPERATIONS
 
   toggleMasterPlay = () => {
-    console.log("master play");
+    console.log("> master play");
     this.setState((state) => {
       const startTime = Date.now() - this.state.runningTime;
       this.timer = setInterval(() => {
@@ -110,7 +110,7 @@ class DAW extends Component {
   };
 
   async toggleMasterStop() {
-    console.log("master stop");
+    console.log("> master stop");
     if (!this.state.masterPlay) {
       return;
     }
@@ -127,7 +127,6 @@ class DAW extends Component {
         `recording_track_${this.state.selectedTrackId}.mp3`
       );
       let recordedURL = URL.createObjectURL(file);
-      console.log(recordedURL);
       //   return { file: file, recordedURL: recordedURL };
       // })
       // .then(async (obj) => {
@@ -167,14 +166,11 @@ class DAW extends Component {
 
   // https://codesandbox.io/s/v67oz43lm7?file=/src/index.js
   async toggleMasterRecord() {
-    console.log("master record!");
-    if (this.state.isBlocked) {
-      console.log("Permission Denied");
-      alert("Permission Denied!");
-    } else if (this.state.selectedTrackId === null) {
+    console.log("> master record");
+    if (this.state.selectedTrackId === null) {
       alert("Select a track to record!");
     } else {
-      console.log("recording" + this.state.selectedTrackId);
+      console.log("recording track " + this.state.selectedTrackId);
       // Mp3Recorder.start();
       await recorder.initAudio();
       await recorder.initWorker();
@@ -295,7 +291,7 @@ class DAW extends Component {
           )}
         </div>
         <button
-          style={{ marginTop: "10px", marginLeft: "5px" }}
+          style={{ marginTop: "10px", marginLeft: "5px", marginBottom: "20px" }}
           className="stitched"
           onClick={this.createTrack}
         >
@@ -304,14 +300,17 @@ class DAW extends Component {
         <p>
           <b>Master Controls</b>
         </p>
+        {this.state.isBlocked && (
+          <p> Please allow access to your mic to record!</p>
+        )}
         {/* TODO: Live Monitoring, Rehearse */}
         <IconButton
           disableRipple
           aria-label="Stop"
           onClick={this.toggleMasterRecord}
-          disabled={this.state.masterPlay}
+          disabled={this.state.masterPlay || this.state.isBlocked}
         >
-          {this.state.masterPlay ? (
+          {this.state.masterPlay || this.state.isBlocked ? (
             <FiberManualRecordRoundedIcon style={{ fontSize: 28 }} />
           ) : (
             <FiberManualRecordRoundedIcon
@@ -332,7 +331,10 @@ class DAW extends Component {
           disableRipple
           aria-label="Play"
           onClick={this.toggleMasterPlay}
-          disabled={this.state.masterPlay}
+          disabled={
+            this.state.masterPlay ||
+            Object.keys(this.props.trackMetadata).length === 0
+          }
           style={{ marginLeft: "-5px" }}
         >
           <PlayArrowRoundedIcon style={{ fontSize: 35 }} />
@@ -356,11 +358,19 @@ class DAW extends Component {
           />
         </div>
         {this.state.showCountdown && (
-          <div className="timer" style={{ marginTop: "10px" }}>
+          <div
+            className="timer"
+            style={{
+              position: "absolute",
+              marginLeft: "400px",
+              marginTop: "-110px",
+            }}
+          >
             <CountdownCircleTimer
               isPlaying
               duration={3}
               colors={[["#0f52bd", 1]]}
+              size={90}
               onComplete={() => {
                 const startTime = Date.now() - this.state.runningTime;
                 this.timer = setInterval(() => {
@@ -378,7 +388,7 @@ class DAW extends Component {
                 });
                 this.toggleMasterStop();
               }}
-              style={{ marginTop: "10px" }}
+              style={{ marginTop: "10px", marginBottom: "10px" }}
             >
               Ahh I'm not ready!
             </button>

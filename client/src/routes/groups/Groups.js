@@ -38,9 +38,7 @@ class Groups extends Component {
 
   async createNewGroup() {
     console.log("creating new group!");
-    const group_name = await Prompt("Name Your Group", {
-      isRequired: true,
-    });
+    const group_name = await Prompt("Name Your Group");
     if (group_name) {
       const formData = new FormData();
       formData.append("group_name", group_name);
@@ -98,7 +96,6 @@ class Groups extends Component {
   async renameGroup(id, name) {
     console.log("renaming group");
     const new_name = await Prompt("Rename Your Group", {
-      isRequired: true,
       defaultValue: name,
     });
     if (new_name) {
@@ -135,7 +132,7 @@ class Groups extends Component {
     }
     return (
       <div>
-        <h2>GROUPS</h2>
+        <h2>REHEARSAL GROUPS</h2>
         {this.state.groups &&
           this.state.groups.map((groupInfo, i) => (
             <div key={`group_${i}`}>

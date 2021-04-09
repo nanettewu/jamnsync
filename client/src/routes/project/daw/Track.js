@@ -367,7 +367,7 @@ class Track extends Component {
       .reduce((acc, take) => {
         if (parseInt(take) <= parseInt(this.state.latestTake)) {
           const rawDate = this.props.takes[take]["date_uploaded"];
-          const d = new Date(rawDate.substr(0, rawDate.lastIndexOf(" ") + 1));
+          const d = new Date(rawDate);
           const formattedDateTime = d.toLocaleString("en-US");
           if (take === this.state.selectedTake) {
             selectedKeyValue["label"] = `Take ${take} - ${formattedDateTime}`;

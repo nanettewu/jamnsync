@@ -89,9 +89,7 @@ class Project extends Component {
 
   async createTrack() {
     console.log("creating new track");
-    const track_name = await Prompt("Name Your Track", {
-      isRequired: true,
-    });
+    const track_name = await Prompt("Name Your Track");
     if (track_name) {
       const formData = new FormData();
       formData.append("track_name", track_name);
@@ -123,7 +121,6 @@ class Project extends Component {
   async renameTrack(id, name) {
     console.log("renaming track");
     const new_name = await Prompt("Rename Your Track", {
-      isRequired: true,
       defaultValue: name,
     });
     if (new_name) {
@@ -182,6 +179,7 @@ class Project extends Component {
     formData.append("track_id", track_id);
     formData.append("file", file);
     formData.append("latency", latency);
+    formData.append("tz_offset", new Date().getTimezoneOffset() / 60);
     const requestOptions = {
       method: "POST",
       body: formData,
@@ -193,6 +191,7 @@ class Project extends Component {
       )
       .then((obj) => {
         if (obj.status !== 400) {
+          console.log("CREATED TAKE:", obj);
           let updatedTracks = Object.assign({}, this.state.track_metadata);
           updatedTracks[parseInt(track_id)].takes[parseInt(obj.body.take)] = {
             id: parseInt(obj.body.take_id),
