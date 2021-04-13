@@ -21,7 +21,7 @@ class MyFlask(Flask):
     json_encoder = MyJSONEncoder
 
 app = MyFlask(__name__, static_folder="../build", static_url_path='/')
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL?sslmode=require').replace('postgres://', 'postgresql://')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL').replace('postgres://', 'postgresql://') + '?sslmode=allow'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = os.environ.get("SECRET_KEY")
 
