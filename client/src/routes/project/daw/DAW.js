@@ -12,6 +12,7 @@ import IconButton from "@material-ui/core/IconButton";
 import PlayArrowRoundedIcon from "@material-ui/icons/PlayArrowRounded";
 import StopRoundedIcon from "@material-ui/icons/StopRounded";
 import FiberManualRecordRoundedIcon from "@material-ui/icons/FiberManualRecordRounded";
+import Tooltip from "@material-ui/core/Tooltip";
 
 const recorder = new vmsg.Recorder({
   wasmURL: "https://unpkg.com/vmsg@0.3.0/vmsg.wasm", // ! TODO
@@ -31,6 +32,7 @@ class DAW extends Component {
       runningTime: 0,
       soloTracks: [],
       masterVolume: 0.5,
+      initialLoad: true,
     };
     this.toggleMasterRecord = this.toggleMasterRecord.bind(this);
     this.toggleMasterStop = this.toggleMasterStop.bind(this);
@@ -38,6 +40,12 @@ class DAW extends Component {
   }
 
   componentDidUpdate() {
+    if (this.state.initialLoad) {
+      if (Object.keys(this.props.trackMetadata).length === 0) {
+        this.createTrack();
+      }
+      this.setState({ initialLoad: false });
+    }
     if (this.state.masterPlay && this.state.masterStop) {
       this.setState({
         masterPlay: false,
@@ -126,7 +134,7 @@ class DAW extends Component {
         [blob],
         `recording_track_${this.state.selectedTrackId}.mp3`
       );
-      let recordedURL = URL.createObjectURL(file);
+      // let recordedURL = URL.createObjectURL(file);
       //   return { file: file, recordedURL: recordedURL };
       // })
       // .then(async (obj) => {
@@ -304,41 +312,53 @@ class DAW extends Component {
           <p> Please allow access to your mic to record!</p>
         )}
         {/* TODO: Live Monitoring, Rehearse */}
-        <IconButton
-          disableRipple
-          aria-label="Stop"
-          onClick={this.toggleMasterRecord}
-          disabled={this.state.masterPlay || this.state.isBlocked}
-        >
-          {this.state.masterPlay || this.state.isBlocked ? (
-            <FiberManualRecordRoundedIcon style={{ fontSize: 28 }} />
-          ) : (
-            <FiberManualRecordRoundedIcon
-              style={{ fontSize: 28 }}
-              color="secondary"
-            />
-          )}
-        </IconButton>
-        <IconButton
-          disableRipple
-          aria-label="Stop"
-          onClick={this.toggleMasterStop}
-          disabled={!this.state.masterPlay}
-        >
-          <StopRoundedIcon style={{ fontSize: 35 }} />
-        </IconButton>
-        <IconButton
-          disableRipple
-          aria-label="Play"
-          onClick={this.toggleMasterPlay}
-          disabled={
-            this.state.masterPlay ||
-            Object.keys(this.props.trackMetadata).length === 0
-          }
-          style={{ marginLeft: "-5px" }}
-        >
-          <PlayArrowRoundedIcon style={{ fontSize: 35 }} />
-        </IconButton>{" "}
+        <Tooltip title="Record selected track" arrow>
+          <span>
+            <IconButton
+              disableRipple
+              aria-label="Record"
+              onClick={this.toggleMasterRecord}
+              disabled={this.state.masterPlay || this.state.isBlocked}
+            >
+              {this.state.masterPlay || this.state.isBlocked ? (
+                <FiberManualRecordRoundedIcon style={{ fontSize: 28 }} />
+              ) : (
+                <FiberManualRecordRoundedIcon
+                  style={{ fontSize: 28 }}
+                  color="secondary"
+                />
+              )}
+            </IconButton>
+          </span>
+        </Tooltip>
+        <Tooltip title={this.state.masterPlay ? "Stop all tracks" : ""} arrow>
+          <span>
+            <IconButton
+              disableRipple
+              aria-label="Stop"
+              onClick={this.toggleMasterStop}
+              disabled={!this.state.masterPlay}
+            >
+              <StopRoundedIcon style={{ fontSize: 35 }} />
+            </IconButton>
+          </span>
+        </Tooltip>
+        <Tooltip title="Play all tracks" arrow>
+          <span>
+            <IconButton
+              disableRipple
+              aria-label="Play"
+              onClick={this.toggleMasterPlay}
+              disabled={
+                this.state.masterPlay ||
+                Object.keys(this.props.trackMetadata).length === 0
+              }
+              style={{ marginLeft: "-5px" }}
+            >
+              <PlayArrowRoundedIcon style={{ fontSize: 35 }} />
+            </IconButton>
+          </span>
+        </Tooltip>{" "}
         <button onClick={this.test}>Test</button>{" "}
         {this.formattedTime(this.state.runningTime)}
         <div

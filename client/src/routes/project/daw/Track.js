@@ -205,7 +205,8 @@ class Track extends Component {
     // const volume =
     //   Math.max(0, (1 - Math.log(value) / Math.log(0.5)) / 9.5) * 100;
     const volume = value;
-    this.state.audioFile.volume((this.props.masterVolume * volume) / 100);
+    console.log(value);
+    this.state.audioFile.volume((this.props.masterVolume * volume) / 80);
     this.setState({ volume: volume });
   };
 
@@ -483,8 +484,8 @@ class Track extends Component {
               Volume
               <Slider
                 min={0}
-                max={100}
-                defaultValue={50}
+                max={80}
+                defaultValue={40}
                 onChange={this.changeVolume}
               />
             </div>

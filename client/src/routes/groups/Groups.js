@@ -16,13 +16,7 @@ class Groups extends Component {
     this.renameGroup = this.renameGroup.bind(this);
   }
 
-  componentDidUpdate() {
-    if (!this.state.isLoaded) {
-      this.fetchGroups();
-    }
-  }
-
-  fetchGroups() {
+  fetchGroups = () => {
     fetch("/api/groups", {
       method: "GET",
     })
@@ -34,7 +28,7 @@ class Groups extends Component {
           this.setState({ groups: res.body, isLoaded: true });
         }
       });
-  }
+  };
 
   async createNewGroup() {
     console.log("creating new group!");
@@ -145,8 +139,12 @@ class Groups extends Component {
               />
             </div>
           ))}
-        <button className="stitched" onClick={this.createNewGroup}>
-          + New Group
+        <button
+          style={{ marginTop: "25px" }}
+          className="stitched"
+          onClick={this.createNewGroup}
+        >
+          + New Rehearsal Group
         </button>
       </div>
     );

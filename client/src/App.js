@@ -27,6 +27,7 @@ class App extends Component {
   }
 
   componentDidMount() {
+    console.log("app mounted");
     let userDetails = JSON.parse(localStorage.getItem("userDetails"));
     let isUserLoggedIn = localStorage.getItem("isUserLoggedIn") === "true";
     if (isUserLoggedIn && !this.state.isUserLoggedIn) {
@@ -52,11 +53,10 @@ class App extends Component {
       .then((resp) => resp.json())
       .then((res) => {
         console.log(res.message);
+        localStorage.setItem("userDetails", JSON.stringify(userDetails));
+        localStorage.setItem("isUserLoggedIn", true);
+        this.setState({ userDetails: userDetails, isUserLoggedIn: true });
       });
-
-    localStorage.setItem("userDetails", JSON.stringify(userDetails));
-    localStorage.setItem("isUserLoggedIn", true);
-    this.setState({ userDetails: userDetails, isUserLoggedIn: true });
   };
 
   handleSuccessfulLogout = () => {
@@ -64,9 +64,9 @@ class App extends Component {
       .then((resp) => resp.json())
       .then((res) => {
         console.log(res.message);
+        localStorage.clear();
+        this.setState({ userDetails: {}, isUserLoggedIn: false });
       });
-    localStorage.clear();
-    this.setState({ userDetails: {}, isUserLoggedIn: false });
   };
 
   render() {
@@ -108,11 +108,11 @@ class App extends Component {
                 <NavLink to="/groups">Groups</NavLink>
               </li>
             )}
-            {this.state.isUserLoggedIn && (
+            {/* {this.state.isUserLoggedIn && (
               <li>
                 <NavLink to="/project">Project</NavLink>
               </li>
-            )}
+            )} */}
           </ul>
 
           <div className="content">

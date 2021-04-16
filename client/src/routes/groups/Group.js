@@ -136,7 +136,7 @@ class Group extends Component {
     return (
       <div style={{ marginTop: "-5px", marginBottom: "-15px" }}>
         <h3>
-          {this.props.name}
+          Group: {this.props.name}
           {"  "}
           <button style={{ marginLeft: "5px" }} onClick={this.createNewProject}>
             + New Project
