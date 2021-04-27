@@ -6,7 +6,6 @@ click
 ffmpeg
 Flask
 Flask-Login
-Flask-Heroku
 Flask-Migrate
 Flask-SQLAlchemy
 gunicorn
@@ -15,7 +14,6 @@ Jinja2
 jmespath
 Mako
 MarkupSafe
-numpy
 psycopg2-binary
 pyasn1
 pydub

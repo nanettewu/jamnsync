@@ -47,6 +47,20 @@ def not_found(e):
 ############################################################################
 
 ####################################
+# * Users
+####################################
+
+@app.route('/api/users', methods=['GET'])
+@login_required
+def get_all_users():
+    user_id_to_names = {}
+    users = User.query.all()
+    for user in users:
+        user_id_to_names[user.id] = user.user_name
+    print(user_id_to_names)
+    return jsonify(user_id_to_names)
+
+####################################
 # * Groups
 ####################################
 
@@ -147,8 +161,10 @@ def get_group_members():
     if not group:
         return f"could not find group (id: {group_id}) or user (id: {user_id})", HTTPStatus.NOT_FOUND
     
-    user_names_and_ids = group.users.with_entities(User.id, User.user_name).all()
-    return jsonify(dict(user_names_and_ids)) # returns dict {id: user name}
+    user_name_and_ids = {}
+    for user in group.users:
+        user_name_and_ids[user.id] = user.user_name
+    return jsonify(user_name_and_ids) # returns dict {id: user name}
     
 @app.route('/api/group/members', methods=['POST', 'DELETE'])
 @login_required
