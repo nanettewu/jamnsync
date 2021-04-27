@@ -316,7 +316,6 @@ class Track extends Component {
 
       let newSelectedTake = null;
       if (Object.keys(this.props.takes).length > 1) {
-        console.log("selecting existing take");
         const takeCopy = Object.keys(this.props.takes);
         takeCopy.splice(takeCopy.indexOf(targetTake), 1);
         newSelectedTake = Math.max.apply(Math, takeCopy);
@@ -353,7 +352,7 @@ class Track extends Component {
   closeThreeDotsMenu = (e) => {
     const option = e.target.innerText;
     if (option === FILE_UPLOAD_OPTION) {
-      document.getElementById("file-upload").click();
+      document.getElementById(`file-upload-${this.props.trackId}`).click();
     } else if (option === RENAME_TRACK_OPTION) {
       this.props.renameTrack(this.props.trackId, this.props.trackName);
     } else if (option === DELETE_TRACK_OPTION) {
@@ -381,7 +380,6 @@ class Track extends Component {
         return acc;
       }, [])
       .reverse();
-
     return (
       <div style={{ marginLeft: "5px" }}>
         <hr />
@@ -419,11 +417,11 @@ class Track extends Component {
           </IconButton>
           <input
             type="file"
-            id="file-upload"
+            id={`file-upload-${this.props.trackId}`}
             hidden
-            onChange={(e) =>
-              this.props.handleFileUpload(e.target.files, this.props.trackId)
-            }
+            onChange={(e) => {
+              this.props.handleFileUpload(e.target.files, this.props.trackId);
+            }}
           />
           <Menu
             id="track-menu"

@@ -1,0 +1,27 @@
+input {
+  margin-left: -9px;
+}
+.projectStitched {
+  padding: 20px;
+  margin: 10px;
+  margin-left: 25px;
+  margin-top: -5px;
+  color: rgb(177, 174, 174);
+  font-size: 16px;
+  font-weight: bold;
+  font-family: sans-serif;
+  text-align: top;
+  line-height: 0px;
+  border: 2px dashed rgb(177, 174, 174);
+  border-radius: 10px;
+  font-weight: normal;
+  background-color: #fff;
+  width: 30%;
+  outline: none;
+}
+
+.projectStitched:hover {
+  color: rgb(135, 135, 135);
+  border: 2px dashed rgb(154, 152, 152);
+  cursor: pointer;
+}

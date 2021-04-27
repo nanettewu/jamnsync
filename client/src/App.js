@@ -9,6 +9,7 @@ import Logout from "./components/Logout";
 import Project from "./routes/project/Project";
 import ProjectSearch from "./routes/project/ProjectSearch";
 import Home from "./routes/home/Home";
+import Projects from "./routes/projects/Projects";
 import Groups from "./routes/groups/Groups";
 import { EmbeddedJitsi } from "./routes/temp-jitsi/EmbeddedJitsi"; // temp
 import WebAudio from "./routes/temp-webaudio/WebAudio"; // temp
@@ -27,7 +28,10 @@ class App extends Component {
   }
 
   componentDidMount() {
-    console.log("app mounted");
+    if (history.location.pathname === "/") {
+      history.replace("/home");
+    }
+
     let userDetails = JSON.parse(localStorage.getItem("userDetails"));
     let isUserLoggedIn = localStorage.getItem("isUserLoggedIn") === "true";
     if (isUserLoggedIn && !this.state.isUserLoggedIn) {
@@ -35,6 +39,16 @@ class App extends Component {
         userDetails: userDetails,
         isUserLoggedIn: isUserLoggedIn,
       });
+    }
+  }
+
+  componentDidUpdate(prevState) {
+    if (
+      !this.state.isUserLoggedIn &&
+      prevState.isUserLoggedIn &&
+      history.location.pathname === "/"
+    ) {
+      history.replace("/home");
     }
   }
 
@@ -72,9 +86,15 @@ class App extends Component {
   render() {
     // default to groups page if no history, otherwise go to last page before refresh
     let pathname = history.location.pathname;
-    if (this.state.isUserLoggedIn && history.location.pathname === "/") {
-      pathname = "/groups";
-    }
+    console.log(
+      "user loggedin:",
+      this.state.isUserLoggedIn,
+      "pathname:",
+      pathname
+    );
+    // if (!this.state.isUserLoggedIn || pathname === "/") {
+    //   history.replace("/home");
+    // }
     return (
       <HashRouter history={history}>
         <div>
@@ -96,23 +116,19 @@ class App extends Component {
           </div>
 
           <ul className="header">
-            {!this.state.isUserLoggedIn && (
-              <li>
-                <NavLink exact to="/">
-                  Home
-                </NavLink>
-              </li>
-            )}
+            <li>
+              <NavLink to="/home">Home</NavLink>
+            </li>
             {this.state.isUserLoggedIn && (
               <li>
                 <NavLink to="/groups">Groups</NavLink>
               </li>
             )}
-            {/* {this.state.isUserLoggedIn && (
+            {this.state.isUserLoggedIn && (
               <li>
-                <NavLink to="/project">Project</NavLink>
+                <NavLink to="/projects">Projects</NavLink>
               </li>
-            )} */}
+            )}
           </ul>
 
           <div className="content">
@@ -120,9 +136,17 @@ class App extends Component {
               {this.state.isUserLoggedIn && pathname !== "/" ? (
                 <Redirect to={pathname} />
               ) : (
-                <Home />
+                <Home authed={this.state.isUserLoggedIn} />
               )}
             </Route>
+            <Route path="/home">
+              <Home authed={this.state.isUserLoggedIn} />
+            </Route>
+            <PrivateRoute
+              path="/projects"
+              component={Projects}
+              authed={this.state.isUserLoggedIn}
+            />
             <PrivateRoute
               path="/groups"
               component={Groups}

@@ -1,7 +1,9 @@
 import React, { Component } from "react";
-import Project from "./Project";
+import Member from "./Member";
 import "./Group.css";
-import { Prompt, Confirm } from "react-st-modal";
+
+import { CustomDialog, Confirm } from "react-st-modal"; // https://github.com/Nodlik/react-st-modal
+import AddMemberModalContent from "./AddMemberModal";
 
 import IconButton from "@material-ui/core/IconButton";
 import Menu from "@material-ui/core/Menu";
@@ -16,102 +18,115 @@ class Group extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      projects: props.projects,
+      group_membership: {},
       threeDotsAnchorElement: null,
     };
-    this.createNewProject = this.createNewProject.bind(this);
-    this.deleteProject = this.deleteProject.bind(this);
-    this.renameProject = this.renameProject.bind(this);
+    fetch("/api/group/members?group_id=" + this.props.id, { method: "GET" })
+      .then((resp) =>
+        resp.json().then((data) => ({ status: resp.status, body: data }))
+      )
+      .then((res) => {
+        if (res.status !== 400) {
+          this.setState({ group_membership: res.body });
+        }
+      });
+    this.addMember = this.addMember.bind(this);
+    this.removeMember = this.removeMember.bind(this);
+    // this.getAllUsers = this.getAllUsers.bind(this);
   }
 
-  async createNewProject() {
-    const project_name = await Prompt("Name Your Project");
-    if (project_name) {
+  componentDidUpdate(prevProps) {
+    if (this.props.refresh !== prevProps.refresh) {
+      fetch("/api/group/members?group_id=" + this.props.id, { method: "GET" })
+        .then((resp) =>
+          resp.json().then((data) => ({ status: resp.status, body: data }))
+        )
+        .then((res) => {
+          if (res.status !== 400) {
+            this.setState({ group_membership: res.body });
+          }
+        });
+    }
+  }
+
+  async addMember() {
+    console.log("adding member");
+    // find all users
+    let all_users = await fetch("/api/users", { method: "GET" })
+      .then((resp) =>
+        resp.json().then((data) => ({ status: resp.status, body: data }))
+      )
+      .then((res) => {
+        console.log(res);
+        return res.body;
+      });
+
+    console.log(all_users);
+    // perform get request to retrieve all available
+    const [newUserId, newUsername] = await CustomDialog(
+      <AddMemberModalContent users={all_users} />,
+      {
+        title: "Add Member to " + this.props.name,
+        showCloseIcon: true,
+      }
+    );
+    // perform post request to add user
+    // console.log("newUserId:", newUserId, "newUsername:", newUsername);
+    if (newUserId && newUsername) {
       const formData = new FormData();
-      formData.append("project_name", project_name);
       formData.append("group_id", this.props.id);
+      formData.append("user_id", newUserId);
       const requestOptions = {
         method: "POST",
         body: formData,
       };
-
-      fetch("/api/project", requestOptions)
+      fetch("/api/group/members", requestOptions)
         .then((resp) =>
           resp.json().then((data) => ({ status: resp.status, body: data }))
         )
         .then((obj) => {
-          if (obj.status !== 400) {
+          if (obj.status === 200) {
+            const updatedMembership = Object.assign(
+              {},
+              this.state.group_membership
+            );
+            updatedMembership[newUserId] = newUsername;
             this.setState({
-              projects: this.state.projects.concat([
-                {
-                  project_name: project_name,
-                  id: obj.body.project_id,
-                  project_hash: obj.body.project_hash,
-                },
-              ]),
+              group_membership: updatedMembership,
             });
           }
         });
     }
   }
 
-  async deleteProject(id, name) {
+  async removeMember(userid) {
+    console.log("removing member id:", userid);
+    const username = this.state.group_membership[userid];
     const result = await Confirm(
-      `Are you sure you want to delete "${name}"?`,
-      "Delete Project"
+      `Are you sure you want to remove "${username}" from "${this.props.name}"?`,
+      "Remove Member"
     );
     if (result) {
       const formData = new FormData();
-      formData.append("project_id", id);
+      formData.append("group_id", this.props.id);
+      formData.append("user_id", userid);
       const requestOptions = {
         method: "DELETE",
         body: formData,
       };
-      fetch("/api/project", requestOptions)
+      fetch("/api/group/members", requestOptions)
         .then((resp) =>
           resp.json().then((data) => ({ status: resp.status, body: data }))
         )
         .then((obj) => {
           if (obj.status === 200) {
-            const updatedProjects = [...this.state.projects].filter(
-              (i) => i.id !== id
+            const updatedMembership = Object.assign(
+              {},
+              this.state.group_membership
             );
+            delete updatedMembership[userid];
             this.setState({
-              projects: updatedProjects,
-            });
-          }
-        });
-    }
-  }
-
-  async renameProject(id, name) {
-    const new_name = await Prompt("Rename Your Project", {
-      defaultValue: name,
-    });
-    if (new_name) {
-      const formData = new FormData();
-      formData.append("project_id", id);
-      formData.append("new_name", new_name);
-      const requestOptions = {
-        method: "PUT",
-        body: formData,
-      };
-
-      fetch("/api/project", requestOptions)
-        .then((resp) =>
-          resp.json().then((data) => ({ status: resp.status, body: data }))
-        )
-        .then((obj) => {
-          if (obj.status === 200) {
-            const updatedProjects = [
-              ...this.state.projects,
-            ].map((projectInfo) =>
-              projectInfo.id === id
-                ? { ...projectInfo, project_name: new_name }
-                : projectInfo
-            );
-            this.setState({
-              projects: updatedProjects,
+              group_membership: updatedMembership,
             });
           }
         });
@@ -134,13 +149,11 @@ class Group extends Component {
 
   render() {
     return (
-      <div style={{ marginTop: "-5px", marginBottom: "-15px" }}>
-        <h3>
+      <div style={{ marginBottom: "-10px" }}>
+        <p style={{ marginTop: "20px", marginBottom: "-20px" }}>
           Group: {this.props.name}
           {"  "}
-          <button style={{ marginLeft: "5px" }} onClick={this.createNewProject}>
-            + New Project
-          </button>
+          <button onClick={this.addMember}>+ Member</button>
           <IconButton
             aria-label="more"
             aria-controls="group-menu"
@@ -169,29 +182,26 @@ class Group extends Component {
               </MenuItem>
             ))}
           </Menu>
-        </h3>
-        <div style={{ marginTop: "-25px" }}>
-          <ul>
-            {this.state.projects && this.state.projects.length === 0 && (
-              <p className="text-muted" style={{ marginTop: "25px" }}>
-                No projects created yet!
-              </p>
-            )}
-            {this.state.projects.map((projectInfo, i) => (
-              <div key={`project_${i}`}>
-                <div style={{ marginTop: "-20px", marginBottom: "-10px" }}>
-                  <Project
-                    project={projectInfo}
-                    group_name={this.props.name}
-                    group_id={this.props.id}
-                    renameProject={this.renameProject}
-                    deleteProject={this.deleteProject}
+        </p>
+        <ul>
+          {Object.keys(this.state.group_membership).map((userid) => {
+            const username = this.state.group_membership[userid];
+            return (
+              <div key={`member_${userid}`}>
+                <div>
+                  <Member
+                    id={userid}
+                    name={username}
+                    removeMember={this.removeMember}
+                    onlyMemberInGroup={
+                      Object.keys(this.state.group_membership).length === 1
+                    }
                   />
                 </div>
               </div>
-            ))}
-          </ul>
-        </div>
+            );
+          })}
+        </ul>
       </div>
     );
   }

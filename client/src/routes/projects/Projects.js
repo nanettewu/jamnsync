@@ -1,19 +1,18 @@
 import React, { Component } from "react";
-import "./Groups.css";
 import Group from "./Group";
+import "./Projects.css";
 import { Confirm, Prompt } from "react-st-modal"; // https://github.com/Nodlik/react-st-modal
 
 import SyncRoundedIcon from "@material-ui/icons/SyncRounded";
 import IconButton from "@material-ui/core/IconButton";
 import Tooltip from "@material-ui/core/Tooltip";
 
-class Groups extends Component {
+class Projects extends Component {
   constructor() {
     super();
     this.state = {
       groups: [],
       isLoaded: false,
-      refresh: 0,
     };
     this.fetchGroups();
     this.createNewGroup = this.createNewGroup.bind(this);
@@ -58,13 +57,6 @@ class Groups extends Component {
               ]),
             });
           }
-        })
-        .catch((error) => {
-          alert(
-            'Server Error: Group name taken, use a different name instead of "' +
-              group_name +
-              '"!'
-          );
         });
     }
   }
@@ -133,24 +125,8 @@ class Groups extends Component {
   }
 
   refresh = () => {
-    console.log("refreshing groups");
-    fetch("/api/groups", {
-      method: "GET",
-    })
-      .then((resp) =>
-        resp.json().then((data) => ({ status: resp.status, body: data }))
-      )
-      .then((res) => {
-        if (res.status !== 400) {
-          this.setState({
-            groups: res.body,
-            isLoaded: true,
-            refresh: this.state.refresh + 1,
-          });
-        } else {
-          this.setState({ refresh: this.state.refresh + 1 });
-        }
-      });
+    console.log("refreshing");
+    this.fetchGroups();
   };
 
   render() {
@@ -158,15 +134,20 @@ class Groups extends Component {
       return <div>Loading...</div>;
     }
     return (
-      <div>
-        <h2 style={{ marginBottom: "-30px" }}>
-          REHEARSAL GROUPS
-          <Tooltip title="Refresh latest group info" arrow>
+      <div style={{ marginBottom: "10px" }}>
+        <h2 style={{ marginBottom: "-25px" }}>
+          PROJECTS
+          <Tooltip title="Refresh latest project info" arrow>
             <IconButton disableRipple aria-label="Sync" onClick={this.refresh}>
               <SyncRoundedIcon style={{ fontSize: 30 }} />
             </IconButton>
           </Tooltip>
         </h2>
+        {this.state.groups && this.state.groups.length === 0 && (
+          <p style={{ marginTop: "20px" }} class="text-muted">
+            Create a group first!
+          </p>
+        )}
         {this.state.groups &&
           this.state.groups.map((groupInfo, i) => (
             <div key={`group_${i}`}>
@@ -176,20 +157,12 @@ class Groups extends Component {
                 projects={groupInfo.projects}
                 renameGroup={this.renameGroup}
                 deleteGroup={this.deleteGroup}
-                refresh={this.state.refresh}
               />
             </div>
           ))}
-        <button
-          style={{ marginTop: "30px" }}
-          className="stitched"
-          onClick={this.createNewGroup}
-        >
-          + New Rehearsal Group
-        </button>
       </div>
     );
   }
 }
 
-export default Groups;
+export default Projects;

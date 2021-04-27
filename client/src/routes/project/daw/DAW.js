@@ -195,7 +195,7 @@ class DAW extends Component {
   }
 
   handleFileUpload = (files, targetId) => {
-    console.log("handling file upload");
+    console.log("handling file upload for target track id", targetId);
     if (
       files === null ||
       files[0] === null ||

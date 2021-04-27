@@ -2,6 +2,10 @@ import React, { Component } from "react";
 import DAW from "./daw/DAW";
 import { Prompt, Confirm } from "react-st-modal"; // https://github.com/Nodlik/react-st-modal
 
+import SyncRoundedIcon from "@material-ui/icons/SyncRounded";
+import IconButton from "@material-ui/core/IconButton";
+import Tooltip from "@material-ui/core/Tooltip";
+
 class Project extends Component {
   constructor(props) {
     super(props);
@@ -224,6 +228,11 @@ class Project extends Component {
       });
   }
 
+  refresh = () => {
+    console.log("refreshing project");
+    this.retrieveProject(this.state.project_hash);
+  };
+
   render() {
     const pathSuffix = this.props.location.pathname.split("/").pop();
 
@@ -237,7 +246,18 @@ class Project extends Component {
       pathSuffix !== "project" &&
       pathSuffix !== "" && (
         <div>
-          <h2>{this.state.project_name}</h2>
+          <h2 style={{ marginBottom: "-20px" }}>
+            {this.state.project_name}
+            <Tooltip title="Refresh latest project info" arrow>
+              <IconButton
+                disableRipple
+                aria-label="Sync"
+                onClick={this.refresh}
+              >
+                <SyncRoundedIcon style={{ fontSize: 30 }} />
+              </IconButton>
+            </Tooltip>
+          </h2>
           <div style={{ marginTop: "20px" }}>
             <DAW
               trackMetadata={this.state.track_metadata}
