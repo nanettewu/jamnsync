@@ -177,13 +177,15 @@ class Project extends Component {
     return false;
   }
 
-  createTake(track_id, file, latency) {
+  createTake(track_id, file, is_aligned, latency) {
     console.log("creating new take for", track_id);
     const formData = new FormData();
     formData.append("track_id", track_id);
     formData.append("file", file);
     formData.append("latency", latency);
     formData.append("tz_offset", new Date().getTimezoneOffset() / 60);
+    formData.append("is_aligned", is_aligned);
+
     const requestOptions = {
       method: "POST",
       body: formData,

@@ -132,8 +132,8 @@ export default function AlignRecordingModalContent(props) {
       </Draggable>
       <ModalContent>
         <p>
-          Move the red cursor as a ruler, and drag your recording left/right to
-          align it!
+          Drag your recording left/right to align it, and move the red cursor as
+          a ruler to align peaks in the waveforms!
         </p>
         <p>
           <b>Backing</b>

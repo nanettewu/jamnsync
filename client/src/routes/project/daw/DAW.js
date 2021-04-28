@@ -101,8 +101,8 @@ class DAW extends Component {
 
   // TAKE OPERATIONS
 
-  createTake = (track_id, file, latency = 0) => {
-    this.props.createTake(track_id, file, latency);
+  createTake = (track_id, file, is_aligned, latency = 0) => {
+    this.props.createTake(track_id, file, is_aligned, latency);
   };
 
   deleteTake = (track_id, take_number, take_id) => {
@@ -211,7 +211,8 @@ class DAW extends Component {
       );
       console.log("latency:", latency);
     }
-    this.createTake(this.state.selectedTrackId, file, latency);
+    const isAligned = Object.keys(this.props.trackMetadata).length === 1; // no need to align if no other tracks
+    this.createTake(this.state.selectedTrackId, file, isAligned, latency);
     this.setState({
       isRecording: false,
       masterRecord: false,
@@ -229,7 +230,8 @@ class DAW extends Component {
     }
     if (/\.(mp3|ogg|wav|flac|aac|aiff|m4a)$/i.test(files[0].name)) {
       console.log("> validated file: ", files[0].name);
-      this.createTake(targetId, files[0]);
+      const isAligned = true;
+      this.createTake(targetId, files[0], isAligned);
     } else {
       alert(
         "Please upload valid audio file type (mp3, ogg, wav, flac, aac, aiff, m4a)"
@@ -336,11 +338,13 @@ class DAW extends Component {
         >
           + New Track
         </button>
-        <p>
+        <p style={{ marginBottom: "5px" }}>
           <b>Master Controls</b>
         </p>
         {this.state.isBlocked && (
-          <p> Please allow access to your mic to record!</p>
+          <p style={{ marginBottom: "5px" }}>
+            Please allow access to your mic to record!
+          </p>
         )}
         {/* TODO: Live Monitoring, Rehearse */}
         <Tooltip title="Record selected track" arrow>

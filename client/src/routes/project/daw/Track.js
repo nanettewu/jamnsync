@@ -1,5 +1,5 @@
-import { Howl } from "howler";
-import Slider from "rc-slider";
+// import { Howl } from "howler";
+// import Slider from "rc-slider";
 import "rc-slider/assets/index.css";
 import React, { Component } from "react";
 import "./Track.css";
@@ -72,11 +72,19 @@ class Track extends Component {
         s3URL: null,
         latestTake: 0,
       });
-      this.audioFile = null;
     }
   }
 
   componentDidUpdate(prevProps) {
+    // set audio file
+    if (this.state.s3URL && this.audioFile === null) {
+      this.audioFile = document.getElementById(
+        `audio-file-${this.props.trackId}`
+      );
+    } else if (this.state.s3URL === null && this.audioFile !== null) {
+      this.audioFile = null;
+    }
+
     // unselect selected track if a different track is selected
     if (
       this.state.selected &&
@@ -94,15 +102,11 @@ class Track extends Component {
       const latestKey = Object.keys(this.props.takes).pop();
       const url = this.props.takes[latestKey].s3_info;
       if (url) {
-        console.log("updated take to take " + latestKey);
         this.setState({
           latestTake: latestKey,
           selectedTake: latestKey,
           s3URL: url,
         });
-        this.audioFile = document.getElementById(
-          `audio-file-${this.props.trackId}`
-        );
       }
     } else if (Object.keys(this.props.takes).length === 0 && this.state.s3URL) {
       this.setState({
@@ -110,7 +114,6 @@ class Track extends Component {
         s3URL: null,
         latestTake: 0,
       });
-      this.audioFile = null;
     }
 
     // play non-selected track during recording or stop if DAW master controls indicate
@@ -318,9 +321,6 @@ class Track extends Component {
           s3URL: newURL,
           latestTake: newSelectedTake,
         });
-        this.audioFile = document.getElementById(
-          `audio-file-${this.props.trackId}`
-        );
       } else {
         console.log("unsetting audio file");
         this.setState({
@@ -329,7 +329,6 @@ class Track extends Component {
           s3URL: null,
           latestTake: 0,
         });
-        this.audioFile = null;
       }
     }
   }
@@ -487,6 +486,8 @@ class Track extends Component {
               id={`audio-file-${this.props.trackId}`}
               src={this.state.s3URL}
               controls
+              preload="auto"
+              autobuffer
             />
 
             <div
