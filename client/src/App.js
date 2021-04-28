@@ -86,15 +86,6 @@ class App extends Component {
   render() {
     // default to groups page if no history, otherwise go to last page before refresh
     let pathname = history.location.pathname;
-    console.log(
-      "user loggedin:",
-      this.state.isUserLoggedIn,
-      "pathname:",
-      pathname
-    );
-    // if (!this.state.isUserLoggedIn || pathname === "/") {
-    //   history.replace("/home");
-    // }
     return (
       <HashRouter history={history}>
         <div>
