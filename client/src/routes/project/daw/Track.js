@@ -432,12 +432,13 @@ class Track extends Component {
           </Menu>
         </div>
         {this.state.s3URL && Object.keys(this.props.takes).length > 0 && (
-          <div style={{ marginBottom: "20px" }}>
+          <div style={{ marginBottom: "18px" }}>
             <Tooltip title="Mute" arrow>
               <IconButton
                 disableRipple
                 aria-label="Mute this track"
                 onClick={this.mute}
+                style={{ marginTop: "-12px" }}
               >
                 {this.state.muted ? (
                   <VolumeOffRoundedIcon
@@ -454,6 +455,7 @@ class Track extends Component {
                 disableRipple
                 aria-label="Solo this track"
                 onClick={this.solo}
+                style={{ marginTop: "-12px" }}
               >
                 {this.state.soloing ? (
                   <HeadsetRoundedIcon
@@ -483,6 +485,11 @@ class Track extends Component {
             </div> */}
 
             <audio
+              style={{
+                display: "inline-flex",
+                marginLeft: "10px",
+                marginBottom: "-7px",
+              }}
               id={`audio-file-${this.props.trackId}`}
               src={this.state.s3URL}
               controls

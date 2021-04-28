@@ -1,11 +1,6 @@
 import React, { Component } from "react";
-// import { Prompt, Confirm } from "react-st-modal";
 
 class Member extends Component {
-  constructor(props) {
-    super(props);
-  }
-
   removeMember = () => {
     this.props.removeMember(this.props.id);
   };

@@ -11,7 +11,7 @@ import Draggable from "react-draggable";
 import Crunker from "crunker"; // https://github.com/jackedgson/crunker
 
 export default function AlignRecordingModalContent(props) {
-  const crunker = new Crunker();
+  // const crunker = new Crunker();
   const dialog = useDialog();
 
   const [isPlaying, setPlaying] = useState(false);
@@ -70,6 +70,7 @@ export default function AlignRecordingModalContent(props) {
     // console.log("loading recordings");
     // console.log(props.recordedURL, props.recordedTrackId, props.trackMetadata);
     if (bgWaveSurfer && recWaveSurfer && !loadedAudio) {
+      const crunker = new Crunker();
       let nonRecordedTrackURLs = Object.keys(props.trackMetadata)
         .filter((trackId) => {
           return trackId !== props.recordedTrackId;
@@ -111,7 +112,7 @@ export default function AlignRecordingModalContent(props) {
       recWaveSurfer.zoom(80);
       setLoadedAudio(true);
     }
-  }, [bgWaveSurfer, recWaveSurfer, loadedAudio, crunker, props]); // TODO check
+  }, [bgWaveSurfer, recWaveSurfer, loadedAudio, props]); // TODO check
 
   return (
     <div className="outerDiv">
