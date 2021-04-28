@@ -6,7 +6,6 @@ import { CustomDialog } from "react-st-modal"; // https://github.com/Nodlik/reac
 import AlignRecordingModalContent from "./AlignRecording";
 import Slider from "rc-slider";
 import "rc-slider/assets/index.css";
-import vmsg from "vmsg"; // https://github.com/Kagami/vmsg
 
 import IconButton from "@material-ui/core/IconButton";
 import PlayArrowRoundedIcon from "@material-ui/icons/PlayArrowRounded";
@@ -14,9 +13,8 @@ import StopRoundedIcon from "@material-ui/icons/StopRounded";
 import FiberManualRecordRoundedIcon from "@material-ui/icons/FiberManualRecordRounded";
 import Tooltip from "@material-ui/core/Tooltip";
 
-const recorder = new vmsg.Recorder({
-  wasmURL: "https://unpkg.com/vmsg@0.3.0/vmsg.wasm", // ! TODO
-});
+const AudioContext = window.AudioContext || window.webkitAudioContext;
+const WebAudioRecorder = window.WebAudioRecorder; // https://github.com/higuma/web-audio-recorder-js
 
 class DAW extends Component {
   constructor() {
@@ -33,9 +31,16 @@ class DAW extends Component {
       soloTracks: [],
       masterVolume: 0.5,
       initialLoad: true,
+      isRehearsing: false,
     };
+    this.audioContext = null;
+    this.gumStream = null;
+    this.input = null;
+    this.recorder = null;
     this.toggleMasterRecord = this.toggleMasterRecord.bind(this);
     this.toggleMasterStop = this.toggleMasterStop.bind(this);
+    this.stopMicrophone = this.stopMicrophone.bind(this);
+
     // this.test = this.test.bind(this);
   }
 
@@ -126,50 +131,10 @@ class DAW extends Component {
     this.setState({ masterStop: true, runningTime: 0 });
     // let recordedURL, file;
     if (this.state.isRecording) {
-      const blob = await recorder.stopRecording();
-      // Mp3Recorder.stop()
-      //   .getMp3()
-      //   .then(([buffer, blob]) => {
-      let file = new File(
-        [blob],
-        `recording_track_${this.state.selectedTrackId}.mp3`
-      );
-      // let recordedURL = URL.createObjectURL(file);
-      //   return { file: file, recordedURL: recordedURL };
-      // })
-      // .then(async (obj) => {
-      let latency = -1; // in ms
-      if (Object.keys(this.props.trackMetadata).length > 1) {
-        // ! TODO
-        // latency = await CustomDialog(
-        //   <AlignRecordingModalContent
-        //     recordedURL={recordedURL}
-        //     recordedTrackId={this.state.selectedTrackId}
-        //     trackMetadata={this.props.trackMetadata}
-        //   />,
-        //   {
-        //     title: "Check Recording",
-        //     showCloseIcon: true,
-        //   }
-        // );
-        // console.log("latency:", latency);
-      }
-      this.createTake(this.state.selectedTrackId, file, latency); // ! TODO
-      this.setState({ isRecording: false, masterRecord: false });
-      // })
-      // .catch((e) => console.log(e));
+      //stop microphone access
+      this.gumStream.getAudioTracks()[0].stop();
+      this.recorder.finishRecording();
     }
-  }
-
-  async test() {
-    const latency = await CustomDialog(
-      <AlignRecordingModalContent recordedURL={"test1"} />,
-      {
-        title: "Check Recording",
-        showCloseIcon: true,
-      }
-    );
-    console.log("latency:", latency);
   }
 
   // https://codesandbox.io/s/v67oz43lm7?file=/src/index.js
@@ -179,11 +144,7 @@ class DAW extends Component {
       alert("Select a track to record!");
     } else {
       console.log("recording track " + this.state.selectedTrackId);
-      // Mp3Recorder.start();
-      await recorder.initAudio();
-      await recorder.initWorker();
-      recorder.startRecording();
-
+      this.startMicrophone();
       this.setState((state) => {
         return {
           masterRecord: true,
@@ -192,6 +153,69 @@ class DAW extends Component {
         };
       });
     }
+  }
+
+  startMicrophone = () => {
+    console.log("begin start recording");
+    this.audioContext = new AudioContext();
+    navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
+      console.log(
+        "getUserMedia() success, stream created, initializing WebAudioRecorder..."
+      );
+      this.gumStream = stream;
+
+      /* use the stream */
+      this.input = this.audioContext.createMediaStreamSource(stream);
+
+      this.recorder = new WebAudioRecorder(this.input, {
+        workerDir: "js/", // must end with slash
+        encoding: "mp3",
+        numChannels: 2, //2 is the default, mp3 encoding supports only 2
+      });
+
+      this.recorder.setOptions({
+        timeLimit: 600,
+        encodeAfterRecord: true,
+        mp3: { bitRate: 320 },
+      });
+
+      this.recorder.onComplete = async (recorder, blob) => {
+        console.log("encoding complete");
+        this.gumStream.getAudioTracks()[0].stop();
+        await this.stopMicrophone(blob);
+      };
+
+      this.recorder.startRecording();
+    });
+  };
+
+  async stopMicrophone(blob) {
+    console.log("stopping microphone with blob", blob);
+    let file = new File(
+      [blob],
+      `recording_track_${this.state.selectedTrackId}.mp3`
+    );
+    let recordedURL = URL.createObjectURL(file);
+    let latency = -1; // in ms
+    if (Object.keys(this.props.trackMetadata).length > 1) {
+      latency = await CustomDialog(
+        <AlignRecordingModalContent
+          recordedURL={recordedURL}
+          recordedTrackId={this.state.selectedTrackId}
+          trackMetadata={this.props.trackMetadata}
+        />,
+        {
+          title: "Check Recording",
+          showCloseIcon: true,
+        }
+      );
+      console.log("latency:", latency);
+    }
+    this.createTake(this.state.selectedTrackId, file, latency);
+    this.setState({
+      isRecording: false,
+      masterRecord: false,
+    });
   }
 
   handleFileUpload = (files, targetId) => {
@@ -244,6 +268,13 @@ class DAW extends Component {
   changeVolume = (value) => {
     // convert linear 1->100 to log 1->100 via f(n) = 50 * log(n)
     this.setState({ masterVolume: value / 75 });
+  };
+
+  rehearse = () => {
+    console.log("currently rehearsing:", this.state.isRehearsing);
+    this.setState({
+      isRehearsing: !this.state.isRehearsing,
+    });
   };
 
   render() {
@@ -359,12 +390,14 @@ class DAW extends Component {
             </IconButton>
           </span>
         </Tooltip>{" "}
-        <button onClick={this.test}>Test</button>{" "}
+        <button onClick={this.rehearse}>
+          {this.state.isRehearsing ? "Stop Rehearsing" : "Start Rehearsing!"}
+        </button>{" "}
         {this.formattedTime(this.state.runningTime)}
         <div
           style={{
             position: "absolute",
-            marginLeft: "285px",
+            marginLeft: "360px",
             marginTop: "-45px",
             width: "100px",
           }}
@@ -382,7 +415,7 @@ class DAW extends Component {
             className="timer"
             style={{
               position: "absolute",
-              marginLeft: "400px",
+              marginLeft: "480px",
               marginTop: "-110px",
             }}
           >

@@ -28,7 +28,6 @@ class Track extends Component {
       selected: false,
       playing: false,
       muted: false,
-      audioFile: null,
       s3URL: null,
       selectedTake: null,
       latestTake: 0,
@@ -36,18 +35,16 @@ class Track extends Component {
       volume: 84.95,
       threeDotsAnchorElement: null,
     };
+    this.audioFile = null;
     if (Object.keys(props.takes).length !== 0) {
       const latestKey = Object.keys(props.takes).pop();
       const url = props.takes[latestKey].s3_info;
       if (url) {
-        this.state.audioFile = new Howl({
-          src: [url],
-          volume: 0.5,
-          format: ["mp3", "wav"],
-          preload: true,
-        });
         this.state.s3URL = url;
         this.state.selectedTake = latestKey;
+        this.audioFile = document.getElementById(
+          `audio-file-${this.props.trackId}`
+        );
       }
     }
     this.deleteTake = this.deleteTake.bind(this);
@@ -60,25 +57,22 @@ class Track extends Component {
       const url = this.props.takes[latestKey].s3_info;
       if (url) {
         this.setState({
-          audioFile: new Howl({
-            src: [url],
-            volume: 0.5,
-            format: ["mp3", "wav"],
-            preload: true,
-          }),
           s3URL: url,
           selectedTake: latestKey,
           latestTake: latestKey,
         });
+        this.audioFile = document.getElementById(
+          `audio-file-${this.props.trackId}`
+        );
       }
       // otherwise reset the take state
     } else {
       this.setState({
         selectedTake: null,
-        audioFile: null,
         s3URL: null,
         latestTake: 0,
       });
+      this.audioFile = null;
     }
   }
 
@@ -104,45 +98,35 @@ class Track extends Component {
         this.setState({
           latestTake: latestKey,
           selectedTake: latestKey,
-          audioFile: new Howl({
-            src: [url],
-            volume: 0.5,
-            format: ["mp3", "wav"],
-            preload: true,
-          }),
           s3URL: url,
         });
+        this.audioFile = document.getElementById(
+          `audio-file-${this.props.trackId}`
+        );
       }
-    } else if (
-      Object.keys(this.props.takes).length === 0 &&
-      this.state.audioFile
-    ) {
+    } else if (Object.keys(this.props.takes).length === 0 && this.state.s3URL) {
       this.setState({
         selectedTake: null,
-        audioFile: null,
         s3URL: null,
         latestTake: 0,
       });
+      this.audioFile = null;
     }
 
     // play non-selected track during recording or stop if DAW master controls indicate
     if (
       this.props.masterPlay &&
-      this.state.audioFile &&
+      this.audioFile &&
       !this.state.playing &&
       (!this.state.selected ||
         (this.state.selected && !this.props.masterRecord))
     ) {
       console.log(`[${this.props.trackName}] playing 1: ${this.state.s3URL}`);
-      this.state.audioFile.seek(0);
-      this.state.audioFile.play();
+      this.audioFile.currentTime = 0;
+      this.audioFile.play();
       this.setState({ playing: true });
-    } else if (
-      this.props.masterStop &&
-      this.state.audioFile &&
-      this.state.playing
-    ) {
-      this.state.audioFile.stop();
+    } else if (this.props.masterStop && this.audioFile && this.state.playing) {
+      this.audioFile.pause();
       this.setState({ playing: false });
     }
 
@@ -151,105 +135,107 @@ class Track extends Component {
       !this.state.soloing &&
       this.props.soloTracks.length !== 0 &&
       !this.state.muted &&
-      this.state.audioFile
+      this.state.s3URL
     ) {
-      this.state.audioFile.mute(true);
+      this.audioFile.muted = true;
       this.setState({
         muted: true,
       });
     } else if (
       this.props.soloTracks.length === 0 &&
       this.state.muted &&
+      this.state.s3URL &&
       prevProps.soloTracks.length !== 0
     ) {
-      this.state.audioFile.mute(false);
+      this.audioFile.muted = false;
       this.setState({
         muted: false,
       });
     }
 
     if (
-      this.state.audioFile &&
+      this.state.s3URL &&
       prevProps.masterVolume !== this.props.masterVolume
     ) {
-      this.state.audioFile.volume(
-        (this.props.masterVolume * this.state.volume) / 100
-      );
+      console.log(this.audioFile.volume);
+      console.log(this.props.masterVolume);
+      this.audioFile.volume = Math.min(1, this.props.masterVolume);
     }
   }
 
   componentWillUnmount() {
-    if (this.state.audioFile) {
-      this.state.audioFile.stop();
+    if (this.audioFile) {
+      this.audioFile.pause();
     }
   }
 
-  playPauseAudio = () => {
-    if (this.state.playing) {
-      this.state.audioFile.pause();
-      this.setState({ playing: false });
-    } else {
-      this.state.audioFile.play();
-      this.setState({ playing: true });
-    }
-  };
+  // playPauseAudio = () => {
+  //   if (this.state.playing) {
+  //     this.audioFile.pause();
+  //     this.setState({ playing: false });
+  //   } else {
+  //     this.audioFile.play();
+  //     this.setState({ playing: true });
+  //   }
+  // };
 
   stop = () => {
-    this.state.audioFile.stop();
+    this.audioFile.currentTime = 0;
+    this.audioFile.pause();
     this.setState({ playing: false });
   };
 
   changeVolume = (value) => {
     // convert linear 1->100 to log 1->100 via f(n) = 50 * log(n)
     // const volume = Math.max(0, 40 * Math.log10(value));
-    // const volume =
     //   Math.max(0, (1 - Math.log(value) / Math.log(0.5)) / 9.5) * 100;
     const volume = value;
     console.log(value);
-    this.state.audioFile.volume((this.props.masterVolume * volume) / 80);
+    this.audioFile.volume = (this.props.masterVolume * volume) / 80;
     this.setState({ volume: volume });
   };
 
   seek = (value) => {
-    this.state.audioFile.pause();
-    this.state.audioFile.seek(value);
+    this.audioFile.currentTime = value;
+    this.audioFile.pause();
     if (this.state.playing) {
-      this.state.audioFile.play();
+      this.audioFile.play();
     }
   };
 
   fastForward = () => {
-    this.state.audioFile.pause();
-    const duration = this.state.audioFile.duration();
-    const currentSeek = this.state.audioFile.seek();
+    this.audioFile.pause();
+    const duration = this.audioFile.duration();
+    const currentSeek = this.audioFile.currentTime;
     const forwardTo = currentSeek + 5;
     if (forwardTo >= duration) {
-      this.state.audioFile.stop();
+      this.audioFile.currentTime = 0;
+      this.audioFile.pause();
       return;
     }
     console.log("ff: " + currentSeek + " -> " + forwardTo);
-    this.state.audioFile.seek(forwardTo);
+    this.audioFile.currentTime = forwardTo;
     if (this.state.playing) {
-      this.state.audioFile.play();
+      this.audioFile.play();
     }
   };
 
   rewind = () => {
-    this.state.audioFile.pause();
-    const currentSeek = this.state.audioFile.seek();
+    this.audioFile.pause();
+    const currentSeek = this.audioFile.currentTime;
     let backwardTo = currentSeek - 5;
     if (backwardTo <= 0) {
       backwardTo = 0;
     }
     console.log("rewind: " + currentSeek + " -> " + backwardTo);
-    this.state.audioFile.seek(backwardTo);
+    this.audioFile.currentTime = backwardTo;
     if (this.state.playing) {
-      this.state.audioFile.play();
+      this.audioFile.play();
     }
   };
 
   mute = () => {
-    this.state.audioFile.mute(!this.state.muted);
+    this.audioFile.muted = !this.state.muted;
     this.setState({
       muted: !this.state.muted,
     });
@@ -258,7 +244,7 @@ class Track extends Component {
   solo = () => {
     this.props.updateSoloTracks(this.props.trackId);
     if (!this.state.soloing) {
-      this.state.audioFile.mute(false);
+      this.audioFile.muted = false;
       this.setState({
         soloing: true,
         muted: false,
@@ -278,31 +264,34 @@ class Track extends Component {
 
   _onSelect = (option) => {
     console.log("Selected " + option.label);
-    this.state.audioFile.stop();
+    this.audioFile.currentTime = 0;
+    this.audioFile.pause();
     const url = this.props.takes[option.value].s3_info;
     this.setState({
       playing: false,
       selectedTake: option.value,
-      audioFile: new Howl({
-        src: [url],
-        volume: 0.5,
-        format: ["mp3", "wav"],
-        preload: true,
-      }),
       s3URL: url,
     });
+    this.audioFile = document.getElementById(
+      `audio-file-${this.props.trackId}`
+    );
   };
 
   async deleteTake() {
     console.log("deleting take");
     const targetTake = this.state.selectedTake;
     const takeInfo = this.props.takes[targetTake];
-    const d = new Date(
-      takeInfo["date_uploaded"].substr(
-        0,
-        takeInfo["date_uploaded"].lastIndexOf(" ") + 1
-      )
-    );
+    let d;
+    if (takeInfo["date_uploaded"].lastIndexOf(" ") !== -1) {
+      d = new Date(
+        takeInfo["date_uploaded"].substr(
+          0,
+          takeInfo["date_uploaded"].lastIndexOf(" ") + 1
+        )
+      );
+    } else {
+      d = new Date(takeInfo["date_uploaded"]);
+    }
     const formattedDateTime = d.toLocaleString("en-US");
 
     const name = `Take ${targetTake} - ${formattedDateTime}`;
@@ -311,7 +300,10 @@ class Track extends Component {
       "Delete Take"
     );
     if (result) {
-      this.state.audioFile.stop();
+      if (this.audioFile) {
+        this.audioFile.currentTime = 0;
+        this.audioFile.pause();
+      }
       await this.props.deleteTake(this.props.trackId, targetTake, takeInfo.id);
 
       let newSelectedTake = null;
@@ -323,24 +315,21 @@ class Track extends Component {
         this.setState({
           playing: false,
           selectedTake: newSelectedTake,
-          audioFile: new Howl({
-            src: [newURL],
-            volume: this.props.masterVolume * 0.5,
-            format: ["mp3", "wav"],
-            preload: true,
-          }),
           s3URL: newURL,
           latestTake: newSelectedTake,
         });
+        this.audioFile = document.getElementById(
+          `audio-file-${this.props.trackId}`
+        );
       } else {
         console.log("unsetting audio file");
         this.setState({
           playing: false,
           selectedTake: newSelectedTake,
-          audioFile: null,
           s3URL: null,
           latestTake: 0,
         });
+        this.audioFile = null;
       }
     }
   }
@@ -443,7 +432,7 @@ class Track extends Component {
             ))}
           </Menu>
         </div>
-        {this.state.audioFile && Object.keys(this.props.takes).length > 0 && (
+        {this.state.s3URL && Object.keys(this.props.takes).length > 0 && (
           <div style={{ marginBottom: "20px" }}>
             <Tooltip title="Mute" arrow>
               <IconButton
@@ -452,9 +441,12 @@ class Track extends Component {
                 onClick={this.mute}
               >
                 {this.state.muted ? (
-                  <VolumeOffRoundedIcon color="secondary" />
+                  <VolumeOffRoundedIcon
+                    style={{ fontSize: 20 }}
+                    color="secondary"
+                  />
                 ) : (
-                  <VolumeOffRoundedIcon />
+                  <VolumeOffRoundedIcon style={{ fontSize: 20 }} />
                 )}
               </IconButton>
             </Tooltip>
@@ -465,18 +457,21 @@ class Track extends Component {
                 onClick={this.solo}
               >
                 {this.state.soloing ? (
-                  <HeadsetRoundedIcon color="secondary" />
+                  <HeadsetRoundedIcon
+                    style={{ fontSize: 20 }}
+                    color="secondary"
+                  />
                 ) : (
-                  <HeadsetRoundedIcon />
+                  <HeadsetRoundedIcon style={{ fontSize: 20 }} />
                 )}
               </IconButton>
             </Tooltip>
-            <div
+            {/* <div
               style={{
                 display: "inline-block",
                 marginLeft: "10px",
                 marginRight: "10px",
-                width: "100px",
+                width: "55px",
               }}
             >
               Volume
@@ -486,7 +481,14 @@ class Track extends Component {
                 defaultValue={40}
                 onChange={this.changeVolume}
               />
-            </div>
+            </div> */}
+
+            <audio
+              id={`audio-file-${this.props.trackId}`}
+              src={this.state.s3URL}
+              controls
+            />
+
             <div
               style={{
                 marginLeft: "10px",

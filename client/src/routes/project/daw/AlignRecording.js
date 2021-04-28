@@ -30,6 +30,7 @@ export default function AlignRecordingModalContent(props) {
   const onStopDrag = useCallback((_, position) => {
     console.log("stopped:", position.x);
     const latency = 12.5053 * position.x + 7.3617;
+    console.log(latency);
     setDragOffset(position.x);
     setLatencyMagnitude(latency);
   }, []);
@@ -71,46 +72,46 @@ export default function AlignRecordingModalContent(props) {
   }, [bgWaveSurfer, recWaveSurfer, loadedAudio, dialog]);
 
   useEffect(() => {
-    console.log("loading recordings");
-    console.log(props.recordedURL, props.recordedTrackId, props.trackMetadata);
+    // console.log("loading recordings");
+    // console.log(props.recordedURL, props.recordedTrackId, props.trackMetadata);
     if (bgWaveSurfer && recWaveSurfer && !loadedAudio) {
-      // let nonRecordedTrackURLs = Object.keys(props.trackMetadata)
-      //   .filter((trackId) => {
-      //     return trackId !== props.recordedTrackId;
-      //   })
-      //   .map((trackId) => {
-      //     // TODO: made executive decision to just pick latest track, but eventually need to fix how take state is stored so DAW Object can access it
-      //     const takeId = Object.keys(props.trackMetadata[trackId].takes).pop();
-      //     const audio_url = props.trackMetadata[trackId].takes[takeId].s3_info;
-      //     return audio_url;
-      //   });
-      // console.log(nonRecordedTrackURLs);
-      // crunker
-      //   .fetchAudio(...nonRecordedTrackURLs)
-      //   .then((buffers) => {
-      //     // => [AudioBuffer, AudioBuffer]
-      //     return crunker.mergeAudio(buffers);
-      //   })
-      //   .then((merged) => {
-      //     // => AudioBuffer
-      //     return crunker.export(merged, "audio/mp3");
-      //   })
-      //   .then((output) => {
-      //     // => {blob, element, url}
-      //     bgWaveSurfer.load(output.url);
-      //     recWaveSurfer.load(props.recordedURL);
+      let nonRecordedTrackURLs = Object.keys(props.trackMetadata)
+        .filter((trackId) => {
+          return trackId !== props.recordedTrackId;
+        })
+        .map((trackId) => {
+          // TODO: made executive decision to just pick latest track, but eventually need to fix how take state is stored so DAW Object can access it
+          const takeId = Object.keys(props.trackMetadata[trackId].takes).pop();
+          const audio_url = props.trackMetadata[trackId].takes[takeId].s3_info;
+          return audio_url;
+        });
+      console.log(nonRecordedTrackURLs);
+      crunker
+        .fetchAudio(...nonRecordedTrackURLs)
+        .then((buffers) => {
+          // => [AudioBuffer, AudioBuffer]
+          return crunker.mergeAudio(buffers);
+        })
+        .then((merged) => {
+          // => AudioBuffer
+          return crunker.export(merged, "audio/mp3");
+        })
+        .then((output) => {
+          // => {blob, element, url}
+          bgWaveSurfer.load(output.url);
+          recWaveSurfer.load(props.recordedURL);
 
-      //     bgWaveSurfer.setVolume(0.3);
-      //     recWaveSurfer.setVolume(0.2);
+          bgWaveSurfer.setVolume(0.3);
+          recWaveSurfer.setVolume(0.2);
 
-      //     bgWaveSurfer.zoom(80);
-      //     recWaveSurfer.zoom(80);
-      //     setLoadedAudio(true);
-      //   });
+          bgWaveSurfer.zoom(80);
+          recWaveSurfer.zoom(80);
+          setLoadedAudio(true);
+        });
 
-      // !TODO REMOVE LATER, ONLY FOR TEST
-      bgWaveSurfer.load(backing);
-      recWaveSurfer.load(recording);
+      // // !TODO REMOVE LATER, ONLY FOR TEST
+      // bgWaveSurfer.load(backing);
+      // recWaveSurfer.load(recording);
 
       bgWaveSurfer.setVolume(0.3);
       recWaveSurfer.setVolume(0.2);
@@ -131,9 +132,8 @@ export default function AlignRecordingModalContent(props) {
       </Draggable>
       <ModalContent>
         <p>
-          Drag your recording left and right to align the start of your
-          recording! <br />
-          (Move the red cursor as a "ruler" to guide alignment)
+          Move the red cursor as a ruler, and drag your recording left/right to
+          align it!
         </p>
         <p>
           <b>Backing</b>
@@ -143,7 +143,7 @@ export default function AlignRecordingModalContent(props) {
           <b>Recording</b>
         </p>
         <Draggable axis="x" onStop={onStopDrag}>
-          <div id="rec_waveform"></div>
+          <div id="rec_waveform" style={{ marginLeft: "-240px" }}></div>
         </Draggable>
       </ModalContent>
       <ModalFooter>
@@ -155,31 +155,25 @@ export default function AlignRecordingModalContent(props) {
             recWaveSurfer.params.scrollParent = false;
 
             bgWaveSurfer.seekTo(0);
-            recWaveSurfer.seekAndCenter(0);
-
-            // ! TODO UNCOMMENT THIS
-            // recWaveSurfer.seekAndCenter(3 / recWaveSurfer.getDuration());
+            recWaveSurfer.seekAndCenter(3 / recWaveSurfer.getDuration());
 
             if (dragOffset > 0) {
               console.log("[recorded early]: user wants to playback later");
               console.log(latencyMagnitude);
               bgWaveSurfer.play(null, 7);
               setTimeout(() => {
-                recWaveSurfer.play(null, 10 - latencyMagnitude / 1000);
+                recWaveSurfer.play(3, 10 - latencyMagnitude / 1000);
               }, latencyMagnitude);
             } else if (dragOffset < 0) {
               console.log("[recorded late]: user wants to playback earlier");
               const latency = -latencyMagnitude;
               console.log(latency);
               bgWaveSurfer.play(null, 7);
-              recWaveSurfer.play(
-                latencyMagnitude / 1000,
-                7 + latencyMagnitude / 1000
-              );
+              recWaveSurfer.play(3 + latency / 1000, 10 + latency / 1000);
               // setLatencyMagnitude(latency);
             } else {
               bgWaveSurfer.play(null, 7);
-              recWaveSurfer.play(null, 7);
+              recWaveSurfer.play(3, 10);
             }
           }}
         >
