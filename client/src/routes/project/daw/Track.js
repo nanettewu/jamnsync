@@ -487,7 +487,7 @@ class Track extends Component {
               src={this.state.s3URL}
               controls
               preload="auto"
-              autobuffer
+              autobuffer="true"
             />
 
             <div

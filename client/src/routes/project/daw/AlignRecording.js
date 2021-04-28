@@ -10,11 +10,6 @@ import WaveSurfer from "wavesurfer.js";
 import Draggable from "react-draggable";
 import Crunker from "crunker"; // https://github.com/jackedgson/crunker
 
-// const backing = "audio/kq/KillerQueen_bg.wav";
-// const recording = "audio/kq/KillerQueen_solo.wav";
-const backing = "audio/click.mp3";
-const recording = "audio/off_kovacs.mp3";
-
 export default function AlignRecordingModalContent(props) {
   const crunker = new Crunker();
   const dialog = useDialog();
@@ -108,10 +103,6 @@ export default function AlignRecordingModalContent(props) {
           recWaveSurfer.zoom(80);
           setLoadedAudio(true);
         });
-
-      // // !TODO REMOVE LATER, ONLY FOR TEST
-      // bgWaveSurfer.load(backing);
-      // recWaveSurfer.load(recording);
 
       bgWaveSurfer.setVolume(0.3);
       recWaveSurfer.setVolume(0.2);
