@@ -384,16 +384,12 @@ def create_take():
 
     # TODO: adds buffer to audio track if not a backing track
     song = AudioSegment.from_file(filepath)
-    if buffer_duration == 0:
-        buffered_song = AudioSegment.silent(duration=buffer_duration) + song
+    delta = buffer_duration - 3000 # to account for 3 second count down
+    if delta < 0:
+        buffered_song = song[(-1 * delta):] # cut into the song (play earlier)
     else:
-        # delta = buffer_duration
-        delta = buffer_duration - 3000 # to account for 3 second count down
-        if delta < 0:
-            buffered_song = song[(-1 * delta):] # cut into the song (play earlier)
-        else:
-            buffered_song = AudioSegment.silent(duration=delta) + song # add silence (play later)
-    buffered_song.export(filepath, format="mp3") 
+        buffered_song = AudioSegment.silent(duration=delta) + song # add silence (play later)
+    buffered_song.export(filepath, format="mp3", bitrate="320k") 
 
     # upload to s3
     project_hash = track.project.project_hash
