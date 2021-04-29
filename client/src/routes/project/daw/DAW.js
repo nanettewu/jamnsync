@@ -211,7 +211,7 @@ class DAW extends Component {
       );
       console.log("latency:", latency);
     }
-    const isAligned = Object.keys(this.props.trackMetadata).length === 1; // no need to align if no other tracks
+    const isAligned = Object.keys(this.props.trackMetadata).length <= 1; // no need to align if no other tracks
     this.createTake(this.state.selectedTrackId, file, isAligned, latency);
     this.setState({
       isRecording: false,
@@ -268,8 +268,7 @@ class DAW extends Component {
   };
 
   changeVolume = (value) => {
-    // convert linear 1->100 to log 1->100 via f(n) = 50 * log(n)
-    this.setState({ masterVolume: value / 75 });
+    this.setState({ masterVolume: value / 100 });
   };
 
   rehearse = () => {
@@ -410,7 +409,7 @@ class DAW extends Component {
           <Slider
             min={0}
             max={100}
-            defaultValue={50}
+            defaultValue={100}
             onChange={this.changeVolume}
           />
         </div>
