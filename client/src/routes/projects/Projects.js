@@ -137,9 +137,14 @@ class Projects extends Component {
       <div style={{ marginBottom: "10px" }}>
         <h2 style={{ marginBottom: "-25px" }}>
           PROJECTS
-          <Tooltip title="Refresh latest project info" arrow>
-            <IconButton disableRipple aria-label="Sync" onClick={this.refresh}>
-              <SyncRoundedIcon style={{ fontSize: 30 }} />
+          <Tooltip title="Refresh latest projects" arrow placement="right">
+            <IconButton
+              style={{ marginTop: "-3px" }}
+              disableRipple
+              aria-label="Sync"
+              onClick={this.refresh}
+            >
+              <SyncRoundedIcon style={{ fontSize: 25 }} />
             </IconButton>
           </Tooltip>
         </h2>

@@ -161,9 +161,14 @@ class Groups extends Component {
       <div>
         <h2 style={{ marginBottom: "-30px" }}>
           REHEARSAL GROUPS
-          <Tooltip title="Refresh latest group info" arrow>
-            <IconButton disableRipple aria-label="Sync" onClick={this.refresh}>
-              <SyncRoundedIcon style={{ fontSize: 30 }} />
+          <Tooltip title="Refresh latest groups" arrow placement="right">
+            <IconButton
+              style={{ marginTop: "-3px" }}
+              disableRipple
+              aria-label="Sync"
+              onClick={this.refresh}
+            >
+              <SyncRoundedIcon style={{ fontSize: 25 }} />
             </IconButton>
           </Tooltip>
         </h2>
