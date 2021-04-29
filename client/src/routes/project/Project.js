@@ -1,5 +1,6 @@
 import React, { Component } from "react";
 import DAW from "./daw/DAW";
+import LoadingGif from "./daw/LoadingGif";
 import { Prompt, Confirm } from "react-st-modal"; // https://github.com/Nodlik/react-st-modal
 
 import SyncRoundedIcon from "@material-ui/icons/SyncRounded";
@@ -15,6 +16,7 @@ class Project extends Component {
       project_id: null,
       track_metadata: null,
       project_hash: props.location.pathname.split("/").pop(),
+      isCreatingTake: false,
     };
     if (this.state.project_hash === "project") {
       this.state.project_hash = null;
@@ -179,6 +181,7 @@ class Project extends Component {
 
   createTake(track_id, file, is_aligned, latency) {
     console.log("creating new take for", track_id);
+    this.setState({ isCreatingTake: true });
     const formData = new FormData();
     formData.append("track_id", track_id);
     formData.append("file", file);
@@ -205,7 +208,12 @@ class Project extends Component {
             s3_info: obj.body.s3_info,
             date_uploaded: new Date(obj.body.timestamp).toString(),
           };
-          this.setState({ track_metadata: updatedTracks });
+          this.setState({
+            track_metadata: updatedTracks,
+            isCreatingTake: false,
+          });
+        } else {
+          this.setState({ isCreatingTake: false });
         }
       });
   }
@@ -248,20 +256,39 @@ class Project extends Component {
       pathSuffix !== "project" &&
       pathSuffix !== "" && (
         <div>
-          <h2 style={{ marginBottom: "-20px" }}>
-            {this.state.project_name}
-            <Tooltip title="Refresh latest project info" arrow>
-              <IconButton
-                disableRipple
-                aria-label="Sync"
-                onClick={this.refresh}
+          <div
+            style={{
+              display: "flex",
+              marginBottom: "-17px",
+              marginTop: "-5px",
+            }}
+          >
+            <h2>
+              {this.state.project_name}
+              <Tooltip
+                title="Refresh latest project info"
+                arrow
+                placement="right"
               >
-                <SyncRoundedIcon style={{ fontSize: 30 }} />
-              </IconButton>
-            </Tooltip>
-          </h2>
+                <IconButton
+                  disableRipple
+                  aria-label="Sync"
+                  onClick={this.refresh}
+                  style={{ marginTop: "0px" }}
+                >
+                  <SyncRoundedIcon style={{ fontSize: 20 }} />
+                </IconButton>
+              </Tooltip>
+            </h2>
+            {this.state.isCreatingTake && (
+              <div style={{ marginTop: "-5px" }}>
+                <LoadingGif text="Uploading..." />
+              </div>
+            )}
+          </div>
           <div style={{ marginTop: "20px" }}>
             <DAW
+              projectName={this.state.project_name}
               trackMetadata={this.state.track_metadata}
               retrieveProject={this.retrieveProject}
               createTrack={this.createTrack}

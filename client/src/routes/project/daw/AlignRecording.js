@@ -6,12 +6,12 @@ import {
 } from "react-st-modal";
 import { useState, useEffect, useCallback } from "react";
 import "./AlignRecording.css";
+import LoadingGif from "./LoadingGif";
 import WaveSurfer from "wavesurfer.js";
 import Draggable from "react-draggable";
 import Crunker from "crunker"; // https://github.com/jackedgson/crunker
 
 export default function AlignRecordingModalContent(props) {
-  // const crunker = new Crunker();
   const dialog = useDialog();
 
   const [isPlaying, setPlaying] = useState(false);
@@ -104,94 +104,93 @@ export default function AlignRecordingModalContent(props) {
           recWaveSurfer.zoom(80);
           setLoadedAudio(true);
         });
-
-      bgWaveSurfer.setVolume(0.3);
-      recWaveSurfer.setVolume(0.2);
-
-      bgWaveSurfer.zoom(80);
-      recWaveSurfer.zoom(80);
-      setLoadedAudio(true);
     }
   }, [bgWaveSurfer, recWaveSurfer, loadedAudio, props]); // TODO check
 
   return (
     <div className="outerDiv">
-      <Draggable axis="x" bounds={{ left: -285, right: 285 }}>
-        <div className="cursor">
-          <div className="point" />
-          <div className="startLine" />
-        </div>
-      </Draggable>
-      <ModalContent>
-        <p>
-          Drag your recording left/right to align it, and move the red cursor as
-          a ruler to align peaks in the waveforms!
-        </p>
-        <p>
-          <b>Backing</b>
-        </p>
-        <div id="bg_waveform"></div>
-        <p>
-          <b>Recording</b>
-        </p>
-        <Draggable axis="x" onStop={onStopDrag}>
-          <div id="rec_waveform" style={{ marginLeft: "-240px" }}></div>
+      <div>
+        <Draggable axis="x" bounds={{ left: -285, right: 285 }}>
+          <div className="cursor">
+            <div className="point" />
+            <div className="startLine" />
+          </div>
         </Draggable>
-      </ModalContent>
-      <ModalFooter>
-        <ModalButton
-          onClick={() => {
-            console.log("offset:", dragOffset);
+        <ModalContent>
+          {!loadedAudio ? (
+            <LoadingGif text={"Preparing alignment tool..."} />
+          ) : (
+            <p>
+              Drag your recording left/right to align it, and move the red
+              cursor as a ruler to align peaks in the waveforms!
+            </p>
+          )}
+          <p>
+            <b>Backing Tracks</b>
+          </p>
+          <div id="bg_waveform"></div>
+          <p>
+            <b>Recording</b>
+          </p>
+          <Draggable axis="x" onStop={onStopDrag}>
+            <div id="rec_waveform" style={{ marginLeft: "-240px" }}></div>
+          </Draggable>
+        </ModalContent>
+        <ModalFooter>
+          <ModalButton
+            onClick={() => {
+              console.log("offset:", dragOffset);
 
-            bgWaveSurfer.params.scrollParent = false;
-            recWaveSurfer.params.scrollParent = false;
+              bgWaveSurfer.params.scrollParent = false;
+              recWaveSurfer.params.scrollParent = false;
 
-            bgWaveSurfer.seekTo(0);
-            recWaveSurfer.seekAndCenter(3 / recWaveSurfer.getDuration());
+              bgWaveSurfer.seekTo(0);
+              recWaveSurfer.seekAndCenter(3 / recWaveSurfer.getDuration());
 
-            if (dragOffset > 0) {
-              console.log("[recorded early]: user wants to playback later");
-              console.log(latencyMagnitude);
-              bgWaveSurfer.play(null, 7);
-              setTimeout(() => {
-                recWaveSurfer.play(3, 10 - latencyMagnitude / 1000);
-              }, latencyMagnitude);
-            } else if (dragOffset < 0) {
-              console.log("[recorded late]: user wants to playback earlier");
-              const latency = -latencyMagnitude;
-              console.log(latency);
-              bgWaveSurfer.play(null, 7);
-              recWaveSurfer.play(3 + latency / 1000, 10 + latency / 1000);
-              // setLatencyMagnitude(latency);
-            } else {
-              bgWaveSurfer.play(null, 7);
-              recWaveSurfer.play(3, 10);
-            }
-          }}
-        >
-          Play
-        </ModalButton>
-        <ModalButton
-          onClick={() => {
-            bgWaveSurfer.pause();
-            recWaveSurfer.pause();
-            setPlaying(!isPlaying);
-          }}
-        >
-          Stop
-        </ModalButton>
-        <ModalButton
-          onClick={() => {
-            // Сlose the dialog and return the value
-            bgWaveSurfer.stop();
-            recWaveSurfer.stop();
-            console.log("returning value:", latencyMagnitude);
-            dialog.close(Math.round(latencyMagnitude));
-          }}
-        >
-          Submit
-        </ModalButton>
-      </ModalFooter>
+              if (dragOffset > 0) {
+                console.log("[recorded early]: user wants to playback later");
+                console.log(latencyMagnitude);
+                bgWaveSurfer.play(null, 15);
+                setTimeout(() => {
+                  recWaveSurfer.play(3, 10 - latencyMagnitude / 1000);
+                }, latencyMagnitude);
+              } else if (dragOffset < 0) {
+                console.log("[recorded late]: user wants to playback earlier");
+                const latency = -latencyMagnitude;
+                console.log(latency);
+                bgWaveSurfer.play(null, 7);
+                recWaveSurfer.play(3 + latency / 1000, 10 + latency / 1000);
+                // setLatencyMagnitude(latency);
+              } else {
+                bgWaveSurfer.play(null, 7);
+                recWaveSurfer.play(3, 10);
+              }
+            }}
+          >
+            Play
+          </ModalButton>
+          <ModalButton
+            onClick={() => {
+              bgWaveSurfer.pause();
+              recWaveSurfer.pause();
+              setPlaying(!isPlaying);
+            }}
+          >
+            Stop
+          </ModalButton>
+          <ModalButton
+            onClick={() => {
+              // Сlose the dialog and return the value
+              bgWaveSurfer.stop();
+              recWaveSurfer.stop();
+              console.log("returning value:", latencyMagnitude);
+              dialog.close(Math.round(latencyMagnitude));
+            }}
+          >
+            Submit
+          </ModalButton>
+        </ModalFooter>
+      </div>
     </div>
   );
 }

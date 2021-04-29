@@ -1,6 +1,7 @@
 import React, { Component } from "react";
 import "./DAW.css";
 import Track from "./Track";
+import LoadingGif from "./LoadingGif";
 import { CountdownCircleTimer } from "react-countdown-circle-timer";
 import { CustomDialog } from "react-st-modal"; // https://github.com/Nodlik/react-st-modal
 import AlignRecordingModalContent from "./AlignRecording";
@@ -8,13 +9,16 @@ import Slider from "rc-slider";
 import "rc-slider/assets/index.css";
 
 import IconButton from "@material-ui/core/IconButton";
+import GetAppIcon from "@material-ui/icons/GetApp";
 import PlayArrowRoundedIcon from "@material-ui/icons/PlayArrowRounded";
 import StopRoundedIcon from "@material-ui/icons/StopRounded";
 import FiberManualRecordRoundedIcon from "@material-ui/icons/FiberManualRecordRounded";
 import Tooltip from "@material-ui/core/Tooltip";
+import Crunker from "crunker";
 
 const AudioContext = window.AudioContext || window.webkitAudioContext;
 const WebAudioRecorder = window.WebAudioRecorder; // https://github.com/higuma/web-audio-recorder-js
+const crunker = new Crunker();
 
 class DAW extends Component {
   constructor() {
@@ -32,6 +36,7 @@ class DAW extends Component {
       masterVolume: 0.5,
       initialLoad: true,
       isRehearsing: false,
+      stopMicProcessing: false,
     };
     this.audioContext = null;
     this.gumStream = null;
@@ -128,7 +133,11 @@ class DAW extends Component {
       return;
     }
     clearInterval(this.timer);
-    this.setState({ masterStop: true, runningTime: 0 });
+    this.setState({
+      masterStop: true,
+      runningTime: 0,
+      stopMicProcessing: true,
+    });
     // let recordedURL, file;
     if (this.state.isRecording) {
       //stop microphone access
@@ -197,6 +206,7 @@ class DAW extends Component {
     );
     let recordedURL = URL.createObjectURL(file);
     let latency = -1; // in ms
+    this.setState({ stopMicProcessing: false });
     if (Object.keys(this.props.trackMetadata).length > 1) {
       latency = await CustomDialog(
         <AlignRecordingModalContent
@@ -278,6 +288,49 @@ class DAW extends Component {
     });
   };
 
+  downloadMixedTrack = () => {
+    console.log("downloading track");
+    let latestTakeURLs = Object.keys(this.props.trackMetadata)
+      .filter((trackId) => {
+        const numTakes = Object.keys(this.props.trackMetadata[trackId].takes)
+          .length;
+        return numTakes !== 0;
+      })
+      .map((trackId) => {
+        const takes = this.props.trackMetadata[trackId].takes;
+        const takeId = Object.keys(takes).pop();
+        console.log(takeId);
+        return takes[takeId].s3_info;
+      });
+    console.log(latestTakeURLs);
+    crunker
+      .fetchAudio(...latestTakeURLs)
+      .then((buffers) => {
+        return crunker.mergeAudio(buffers);
+      })
+      .then((merged) => {
+        return crunker.export(merged, "audio/mp3");
+      })
+      .then((output) => {
+        // https://stackoverflow.com/questions/50694881/how-to-download-file-in-react-js
+        const link = document.createElement("a");
+        link.href = output.url;
+        const d = new Date();
+        const datestring = `${d.getFullYear()}_${
+          d.getMonth() + 1
+        }_${d.getDate()}`;
+        const timestring = `${d.getHours()}_${d.getMinutes()}_${d.getDate()}_${
+          d.getHours() >= 12 ? "PM" : "AM"
+        }`;
+        const outputFilename = `${this.props.projectName}_${datestring}-${timestring}`;
+        link.setAttribute("download", outputFilename);
+
+        document.body.appendChild(link); // Append to html link element page
+        link.click(); // Start download
+        link.parentNode.removeChild(link); // Clean up and remove the link
+      });
+  };
+
   render() {
     return (
       <div>
@@ -331,15 +384,20 @@ class DAW extends Component {
           )}
         </div>
         <button
-          style={{ marginTop: "10px", marginLeft: "5px", marginBottom: "20px" }}
+          style={{ marginTop: "10px", marginLeft: "5px", marginBottom: "28px" }}
           className="stitched"
           onClick={this.createTrack}
         >
           + New Track
         </button>
-        <p style={{ marginBottom: "5px" }}>
-          <b>Master Controls</b>
-        </p>
+        <div style={{ display: "flex" }}>
+          <p style={{ marginBottom: "5px" }}>
+            <b>Master Controls</b>
+          </p>
+          {this.state.stopMicProcessing && (
+            <LoadingGif text={"Saving Recording..."} />
+          )}
+        </div>
         {this.state.isBlocked && (
           <p style={{ marginBottom: "5px" }}>
             Please allow access to your mic to record!
@@ -393,33 +451,49 @@ class DAW extends Component {
             </IconButton>
           </span>
         </Tooltip>{" "}
-        <button onClick={this.rehearse}>
-          {this.state.isRehearsing ? "Stop Rehearsing" : "Start Rehearsing!"}
-        </button>{" "}
         {this.formattedTime(this.state.runningTime)}
-        <div
-          style={{
-            position: "absolute",
-            marginLeft: "360px",
-            marginTop: "-45px",
-            width: "100px",
-          }}
-        >
-          Volume
-          <Slider
-            min={0}
-            max={100}
-            defaultValue={100}
-            onChange={this.changeVolume}
-          />
+        <div style={{ display: "flex", marginTop: "-45px" }}>
+          <div
+            style={{
+              position: "relative",
+              marginLeft: "245px",
+              width: "100px",
+            }}
+          >
+            Volume
+            <Slider
+              min={0}
+              max={100}
+              defaultValue={100}
+              onChange={this.changeVolume}
+            />
+          </div>
+          <Tooltip
+            title="Download full track with latest takes"
+            arrow
+            style={{ marginLeft: "10px", marginTop: "-10px" }}
+          >
+            <span>
+              <IconButton
+                disableRipple
+                aria-label="Download full track with latest takes"
+                onClick={this.downloadMixedTrack}
+                style={{
+                  marginBottom: "-10px",
+                }}
+              >
+                <GetAppIcon style={{ fontSize: 30 }} />
+              </IconButton>
+            </span>
+          </Tooltip>
         </div>
         {this.state.showCountdown && (
           <div
             className="timer"
             style={{
               position: "absolute",
-              marginLeft: "480px",
-              marginTop: "-110px",
+              marginLeft: "440px",
+              marginTop: "-105px",
             }}
           >
             <CountdownCircleTimer
