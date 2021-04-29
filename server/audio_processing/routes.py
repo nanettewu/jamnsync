@@ -360,7 +360,7 @@ def create_take():
     user_timezone_offset = -1 * int(request.form.get('tz_offset')) if request.form.get('tz_offset') else 0
     is_aligned = True if request.form.get('is_aligned') and request.form.get('is_aligned') == 'true' else False
     
-    print("is aligned", is_aligned)
+    print("is aligned req val:",request.form.get('is_aligned'),", actual:", is_aligned)
     print("buffer duration", buffer_duration)
     if not track_id or (track_id and not track_id.isdigit()) or ('file' not in request.files):
         return abort(HTTPStatus.BAD_REQUEST)

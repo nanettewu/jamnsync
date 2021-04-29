@@ -11,16 +11,16 @@ from datetime import date
 basedir = os.path.abspath(os.path.dirname(__file__))
 load_dotenv(os.path.join(basedir, '.env'))
 
-class MyJSONEncoder(JSONEncoder):
-    def default(self, o):
-        if isinstance(o, date):
-            return o.isoformat()
-        return super().default(o)
+# class MyJSONEncoder(JSONEncoder):
+#     def default(self, o):
+#         if isinstance(o, date):
+#             return o.isoformat()
+#         return super().default(o)
 
-class MyFlask(Flask):
-    json_encoder = MyJSONEncoder
+# class MyFlask(Flask):
+#     json_encoder = MyJSONEncoder
 
-app = MyFlask(__name__, static_folder="../build", static_url_path='/')
+app = Flask(__name__, static_folder="../build", static_url_path='/')
 database_url = os.environ.get('DATABASE_URL').replace('postgres://', 'postgresql://')
 if (os.environ.get('FLASK_ENV') != "development"):
     database_url += '?sslmode=require'
