@@ -1,6 +1,3 @@
-// import { Howl } from "howler";
-// import Slider from "rc-slider";
-import "rc-slider/assets/index.css";
 import React, { Component } from "react";
 import "./Track.css";
 import Dropdown from "react-dropdown";
@@ -193,7 +190,6 @@ class Track extends Component {
     // const volume = Math.max(0, 40 * Math.log10(value));
     //   Math.max(0, (1 - Math.log(value) / Math.log(0.5)) / 9.5) * 100;
     const volume = value;
-    console.log(value);
     this.audioFile.volume = (this.props.masterVolume * volume) / 80;
     this.setState({ volume: volume });
   };
