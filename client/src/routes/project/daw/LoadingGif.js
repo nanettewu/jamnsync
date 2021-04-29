@@ -11,6 +11,7 @@ class LoadingGif extends Component {
             marginTop: "10px",
           }}
           src="images/daw/loading.gif"
+          alt="loading"
           width="32"
           height="32"
         />
