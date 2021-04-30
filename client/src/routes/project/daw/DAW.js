@@ -106,8 +106,8 @@ class DAW extends Component {
 
   // TAKE OPERATIONS
 
-  createTake = (track_id, file, is_aligned, latency = 0) => {
-    this.props.createTake(track_id, file, is_aligned, latency);
+  createTake = (track_id, file, is_manual_upload, latency = 0) => {
+    this.props.createTake(track_id, file, is_manual_upload, latency);
   };
 
   deleteTake = (track_id, take_number, take_id) => {
@@ -221,12 +221,13 @@ class DAW extends Component {
         {
           title: "Check Recording",
           showCloseIcon: true,
+          isCanClose: false,
         }
       );
       console.log("latency:", latency);
     }
-    const isAligned = Object.keys(this.props.trackMetadata).length <= 1; // no need to align if no other tracks
-    this.createTake(this.state.selectedTrackId, file, isAligned, latency);
+    const isManualUpload = false;
+    this.createTake(this.state.selectedTrackId, file, isManualUpload, latency);
     this.setState({
       isRecording: false,
       masterRecord: false,
@@ -244,8 +245,8 @@ class DAW extends Component {
     }
     if (/\.(mp3|ogg|wav|flac|aac|aiff|m4a)$/i.test(files[0].name)) {
       console.log("> validated file: ", files[0].name);
-      const isAligned = true;
-      this.createTake(targetId, files[0], isAligned);
+      const isManualUpload = true;
+      this.createTake(targetId, files[0], isManualUpload);
     } else {
       alert(
         "Please upload valid audio file type (mp3, ogg, wav, flac, aac, aiff, m4a)"

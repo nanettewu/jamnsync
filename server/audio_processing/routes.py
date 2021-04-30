@@ -358,9 +358,9 @@ def create_take():
     track_id = request.form.get('track_id')
     buffer_duration = int(request.form.get('latency')) if request.form.get('latency') else 0
     user_timezone_offset = -1 * int(request.form.get('tz_offset')) if request.form.get('tz_offset') else 0
-    is_aligned = True if request.form.get('is_aligned') and request.form.get('is_aligned') == 'true' else False
+    is_manual_upload = True if request.form.get('is_manual_upload') and request.form.get('is_manual_upload') == 'true' else False
     
-    print("is aligned req val:",request.form.get('is_aligned'),", actual:", is_aligned)
+    print("is manual upload req val:",request.form.get('is_manual_upload'),", actual:", is_manual_upload)
     print("buffer duration", buffer_duration)
     if not track_id or (track_id and not track_id.isdigit()) or ('file' not in request.files):
         return abort(HTTPStatus.BAD_REQUEST)
@@ -388,7 +388,7 @@ def create_take():
     # TODO: adds buffer to audio track if not a backing track
     song = AudioSegment.from_file(filepath)
     # don't trim audio if track is already aligned
-    if is_aligned:
+    if is_manual_upload:
         delta = 0
     else:
         delta = buffer_duration - 3000 # to account for 3 second count down

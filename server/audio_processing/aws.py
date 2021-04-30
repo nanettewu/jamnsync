@@ -17,8 +17,8 @@ def upload_take(filename, project_hash, track_id, take_num, current_time):
 
     base_dir = os.path.dirname(os.path.realpath(__file__))
     filepath = os.path.join(base_dir, UPLOAD_FOLDER, filename) # source
-    print("uploaded file located at:", filepath)
-    print("current dir:", os.getcwd())
+    # print("uploaded file located at:", filepath)
+    # print("current dir:", os.getcwd())
     key_name = f"projects/{project_hash}/{modified_filename}" #destination
     boto3.client('s3').upload_file(filepath, BUCKET, key_name)
     print(f"Successfully uploaded take: {key_name}")

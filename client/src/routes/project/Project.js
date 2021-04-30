@@ -185,7 +185,7 @@ class Project extends Component {
     return false;
   }
 
-  createTake(track_id, file, is_aligned, latency) {
+  createTake(track_id, file, is_manual_upload, latency) {
     console.log("creating new take for", track_id);
     this.setState({ isCreatingTake: true });
     const formData = new FormData();
@@ -193,7 +193,7 @@ class Project extends Component {
     formData.append("file", file);
     formData.append("latency", latency);
     formData.append("tz_offset", new Date().getTimezoneOffset() / 60);
-    formData.append("is_aligned", is_aligned);
+    formData.append("is_manual_upload", is_manual_upload);
 
     const requestOptions = {
       method: "POST",
@@ -221,6 +221,11 @@ class Project extends Component {
         } else {
           this.setState({ isCreatingTake: false });
         }
+      })
+      .catch((error) => {
+        alert("Could not upload take due to server error (see console).");
+        console.log(error);
+        this.setState({ isCreatingTake: false });
       });
   }
 

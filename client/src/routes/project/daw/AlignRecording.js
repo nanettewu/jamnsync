@@ -122,7 +122,7 @@ export default function AlignRecordingModalContent(props) {
           ) : (
             <p>
               Drag your recording left/right to align it, and move the red
-              cursor as a ruler to align peaks in the waveforms!
+              cursor as a ruler to align peaks!
             </p>
           )}
           <p>
@@ -139,44 +139,43 @@ export default function AlignRecordingModalContent(props) {
         <ModalFooter>
           <ModalButton
             onClick={() => {
-              console.log("offset:", dragOffset);
-
-              bgWaveSurfer.params.scrollParent = false;
-              recWaveSurfer.params.scrollParent = false;
-
-              bgWaveSurfer.seekTo(0);
-              recWaveSurfer.seekAndCenter(3 / recWaveSurfer.getDuration());
-
-              if (dragOffset > 0) {
-                console.log("[recorded early]: user wants to playback later");
-                console.log(latencyMagnitude);
-                bgWaveSurfer.play(null, 15);
-                setTimeout(() => {
-                  recWaveSurfer.play(3, 10 - latencyMagnitude / 1000);
-                }, latencyMagnitude);
-              } else if (dragOffset < 0) {
-                console.log("[recorded late]: user wants to playback earlier");
-                const latency = -latencyMagnitude;
-                console.log(latency);
-                bgWaveSurfer.play(null, 7);
-                recWaveSurfer.play(3 + latency / 1000, 10 + latency / 1000);
-                // setLatencyMagnitude(latency);
+              if (isPlaying) {
+                bgWaveSurfer.pause();
+                recWaveSurfer.pause();
               } else {
-                bgWaveSurfer.play(null, 7);
-                recWaveSurfer.play(3, 10);
+                console.log("offset:", dragOffset);
+
+                bgWaveSurfer.params.scrollParent = false;
+                recWaveSurfer.params.scrollParent = false;
+
+                bgWaveSurfer.seekTo(0);
+                recWaveSurfer.seekAndCenter(3 / recWaveSurfer.getDuration());
+
+                if (dragOffset > 0) {
+                  console.log("[recorded early]: user wants to playback later");
+                  console.log(latencyMagnitude);
+                  bgWaveSurfer.play(null, 15);
+                  setTimeout(() => {
+                    recWaveSurfer.play(3, 10 - latencyMagnitude / 1000);
+                  }, latencyMagnitude);
+                } else if (dragOffset < 0) {
+                  console.log(
+                    "[recorded late]: user wants to playback earlier"
+                  );
+                  const latency = -latencyMagnitude;
+                  console.log(latency);
+                  bgWaveSurfer.play(null, 7);
+                  recWaveSurfer.play(3 + latency / 1000, 10 + latency / 1000);
+                  // setLatencyMagnitude(latency);
+                } else {
+                  bgWaveSurfer.play(null, 7);
+                  recWaveSurfer.play(3, 10);
+                }
               }
-            }}
-          >
-            Play
-          </ModalButton>
-          <ModalButton
-            onClick={() => {
-              bgWaveSurfer.pause();
-              recWaveSurfer.pause();
               setPlaying(!isPlaying);
             }}
           >
-            Stop
+            {!isPlaying ? "Play" : "Stop"}
           </ModalButton>
           <ModalButton
             onClick={() => {
