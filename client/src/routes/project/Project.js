@@ -17,6 +17,7 @@ class Project extends Component {
       track_metadata: null,
       project_hash: props.location.pathname.split("/").pop(),
       isCreatingTake: false,
+      isDeletingTakeOrTrack: false,
     };
     if (this.state.project_hash === "project") {
       this.state.project_hash = null;
@@ -157,6 +158,7 @@ class Project extends Component {
       "Delete Track"
     );
     if (result) {
+      this.setState({ isDeletingTakeOrTrack: true });
       const formData = new FormData();
       formData.append("track_id", id);
       const requestOptions = {
@@ -171,9 +173,13 @@ class Project extends Component {
           if (obj.status === 200) {
             const updatedTracks = Object.assign({}, this.state.track_metadata);
             delete updatedTracks[id];
-            this.setState({ track_metadata: updatedTracks });
+            this.setState({
+              track_metadata: updatedTracks,
+              isDeletingTakeOrTrack: false,
+            });
             return true;
           }
+          this.setState({ isDeletingTakeOrTrack: false });
         });
     }
     return false;
@@ -219,6 +225,7 @@ class Project extends Component {
   }
 
   deleteTake(track_id, take_number, take_id) {
+    this.setState({ isDeletingTakeOrTrack: true });
     const formData = new FormData();
     formData.append("take_id", take_id);
     const requestOptions = {
@@ -233,7 +240,12 @@ class Project extends Component {
         if (obj.status === 200) {
           const updatedTracks = Object.assign({}, this.state.track_metadata);
           delete updatedTracks[track_id].takes[take_number];
-          this.setState({ track_metadata: updatedTracks });
+          this.setState({
+            track_metadata: updatedTracks,
+            isDeletingTakeOrTrack: false,
+          });
+        } else {
+          this.setState({ isDeletingTakeOrTrack: false });
         }
       });
   }
@@ -282,7 +294,12 @@ class Project extends Component {
             </h2>
             {this.state.isCreatingTake && (
               <div style={{ marginTop: "-5px" }}>
-                <LoadingGif text="Uploading..." />
+                <LoadingGif text="Uploading take..." />
+              </div>
+            )}
+            {this.state.isDeletingTakeOrTrack && (
+              <div style={{ marginTop: "-5px" }}>
+                <LoadingGif text="Deleting..." />
               </div>
             )}
           </div>

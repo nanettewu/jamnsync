@@ -133,13 +133,17 @@ class DAW extends Component {
       return;
     }
     clearInterval(this.timer);
-    this.setState({
-      masterStop: true,
-      runningTime: 0,
-      stopMicProcessing: true,
-    });
-    // let recordedURL, file;
-    if (this.state.isRecording) {
+    if (!this.state.isRecording) {
+      this.setState({
+        masterStop: true,
+        runningTime: 0,
+      });
+    } else {
+      this.setState({
+        masterStop: true,
+        runningTime: 0,
+        stopMicProcessing: true,
+      });
       //stop microphone access
       this.gumStream.getAudioTracks()[0].stop();
       this.recorder.finishRecording();
