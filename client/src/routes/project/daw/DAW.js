@@ -45,8 +45,6 @@ class DAW extends Component {
     this.toggleMasterRecord = this.toggleMasterRecord.bind(this);
     this.toggleMasterStop = this.toggleMasterStop.bind(this);
     this.stopMicrophone = this.stopMicrophone.bind(this);
-
-    // this.test = this.test.bind(this);
   }
 
   componentDidUpdate() {
@@ -209,7 +207,7 @@ class DAW extends Component {
       `recording_track_${this.state.selectedTrackId}.mp3`
     );
     let recordedURL = URL.createObjectURL(file);
-    let latency = -1; // in ms
+    let latency = 0; // in ms
     this.setState({ stopMicProcessing: false });
     if (Object.keys(this.props.trackMetadata).length > 1) {
       latency = await CustomDialog(
