@@ -62,23 +62,23 @@ def disconnected():
     if request.sid in client_names:
         del client_names[request.sid]
         
-    for room in prepared_play_by_room:
+    for room in list(prepared_play_by_room):
         if request.sid in prepared_play_by_room[room]:
-            print("[SOCKET.IO] > removing client from prepared play, room", room)
+            print("[SOCKET.IO] > removing client from prepared play | room", room)
             prepared_play_by_room[room].remove(request.sid)
         if len(prepared_play_by_room[room]) == 0:
             del prepared_play_by_room[room]
     
-    for room in prepared_record_by_room:
+    for room in list(prepared_record_by_room):
         if request.sid in prepared_record_by_room[room]:
-            print("[SOCKET.IO] > removing client from prepared record, room", room)
+            print("[SOCKET.IO] > removing client from prepared record | room", room)
             prepared_record_by_room[room].remove(request.sid)
         if len(prepared_record_by_room[room]) == 0:
             del prepared_record_by_room[room]
         
-    for room in all_clients_by_room:
+    for room in list(all_clients_by_room):
         if request.sid in all_clients_by_room[room]:
-            print("[SOCKET.IO] > removing client from all, room", room)
+            print("[SOCKET.IO] > removing client from all | room", room)
             all_clients_by_room[room].remove(request.sid)
         # reset memoizing of room if no more clients left
         if len(all_clients_by_room[room]) == 0:
@@ -95,7 +95,7 @@ def join_project(data):
     if not room in all_clients_by_room:
         all_clients_by_room[room] = set()
     all_clients_by_room[room].add(request.sid)
-    print('[SOCKET.IO] updated clients by room:' + str(all_clients_by_room))
+    print('[SOCKET.IO] updated all clients by room:' + str(all_clients_by_room))
     print('###############################')
     join_room(room)
     if len(all_clients_by_room[room]) > 1:
@@ -127,7 +127,7 @@ def leave_project(data):
         if len(all_clients_by_room[room]) == 0:
             del all_clients_by_room[room]
         
-    print('[SOCKET.IO] updated clients by room: ' + str(all_clients_by_room))
+    print('[SOCKET.IO] updated all clients by room: ' + str(all_clients_by_room))
     print('###############################')
 
 @socketio.on('prepare group play')

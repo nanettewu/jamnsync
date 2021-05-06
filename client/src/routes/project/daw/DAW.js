@@ -405,7 +405,7 @@ class DAW extends Component {
         const takes = this.props.trackMetadata[trackId].takes;
         const takeId = Object.keys(takes).pop();
         console.log(takeId);
-        return takes[takeId].s3_info;
+        return takes[takeId].s3_info + "?cacheblock=true";
       });
     console.log(latestTakeURLs);
     crunker

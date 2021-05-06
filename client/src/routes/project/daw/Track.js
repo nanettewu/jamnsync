@@ -487,7 +487,7 @@ class Track extends Component {
 
             <audio
               id={`audio-file-${this.props.trackId}`}
-              src={this.state.s3URL}
+              src={`${this.state.s3URL}?cacheblock=true`}
               preload="auto"
               autobuffer="true"
             />
@@ -516,7 +516,7 @@ class Track extends Component {
                 marginTop: "15px",
               }}
             >
-              <form method="get" action={this.state.s3URL}>
+              <form method="get" action={`${this.state.s3URL}?cacheblock=true`}>
                 <button type="submit">Download Take</button>
               </form>
               <button

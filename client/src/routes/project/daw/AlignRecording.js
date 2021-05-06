@@ -85,7 +85,10 @@ export default function AlignRecordingModalContent(props) {
         .map((trackId) => {
           // TODO: made executive decision to just pick latest track, but eventually need to fix how take state is stored so DAW Object can access it
           const takeId = Object.keys(props.trackMetadata[trackId].takes).pop();
-          const audio_url = props.trackMetadata[trackId].takes[takeId].s3_info;
+          const audio_url =
+            props.trackMetadata[trackId].takes[takeId].s3_info +
+            "?cacheblock=true";
+          console.log("audio url:" + audio_url);
           return audio_url;
         });
       console.log(
