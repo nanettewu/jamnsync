@@ -8,10 +8,18 @@ class Home extends Component {
         {!this.props.authed ? (
           <p>Login to get started! 🎶</p>
         ) : (
-          <p>
-            Click on "Groups" to create a rehearsal group first, then "Projects"
-            to create a project.{" "}
-          </p>
+          <div>
+            <p> To get started on a project: </p>
+            <ol>
+              <li>
+                Click "Groups" to create a new rehearsal group and add group
+                members.
+              </li>
+              <li>
+                Click "Projects" to create a project and begin rehearsing!{" "}
+              </li>
+            </ol>
+          </div>
         )}
       </div>
     );
