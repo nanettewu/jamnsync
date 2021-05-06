@@ -67,7 +67,6 @@ class DAW extends Component {
     console.log(
       "[SOCKET.IO] receiving begin group stop for " + this.props.projectName
     );
-    console.log("immediate stop:", this.state.receivedImmediateStop);
     if (!this.state.receivedImmediateStop) {
       this.setState({ receivedImmediateStop: true });
       this.toggleMasterStop();
@@ -240,11 +239,11 @@ class DAW extends Component {
   }
 
   startMicrophone = () => {
-    console.log("begin start recording");
+    console.log("[RECORDING] start microphone");
     this.audioContext = new AudioContext();
     navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
       console.log(
-        "getUserMedia() success, stream created, initializing WebAudioRecorder..."
+        "[RECORDING] getUserMedia() success, stream created, initializing WebAudioRecorder..."
       );
       this.gumStream = stream;
 
@@ -264,7 +263,7 @@ class DAW extends Component {
       });
 
       this.recorder.onComplete = async (recorder, blob) => {
-        console.log("encoding complete");
+        console.log("[RECORDING] encoding complete");
         this.gumStream.getAudioTracks()[0].stop();
         await this.stopMicrophone(blob);
       };
@@ -274,7 +273,7 @@ class DAW extends Component {
   };
 
   async stopMicrophone(blob) {
-    console.log("stopping microphone with blob", blob);
+    console.log("[RECORDING] stopping microphone");
     let file = new File(
       [blob],
       `recording_track_${this.state.selectedTrackId}.mp3`
@@ -304,7 +303,6 @@ class DAW extends Component {
         });
         return;
       }
-      console.log("latency:", latency);
     }
     const isManualUpload = false;
     this.createTake(this.state.selectedTrackId, file, isManualUpload, latency);

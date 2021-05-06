@@ -49,7 +49,6 @@ class Projects extends Component {
   };
 
   refresh = () => {
-    console.log("refreshing");
     this.fetchGroups();
   };
 

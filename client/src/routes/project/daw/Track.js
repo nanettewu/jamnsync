@@ -123,7 +123,9 @@ class Track extends Component {
       (!this.state.selected ||
         (this.state.selected && !this.props.masterRecord))
     ) {
-      console.log(`[${this.props.trackName}] playing: ${this.state.s3URL}`);
+      console.log(
+        `[TRACK: ${this.props.trackName}] playing: ${this.state.s3URL}`
+      );
       this.audioFile.currentTime = 0;
       this.audioFile.play();
       this.setState({ playing: true });

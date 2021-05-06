@@ -83,6 +83,7 @@ def disconnected():
         # reset memoizing of room if no more clients left
         if len(all_clients_by_room[room]) == 0:
             del all_clients_by_room[room]
+    print('[SOCKET.IO] all clients left:' + str(all_clients_by_room))
     
 @socketio.on('join project')
 def join_project(data):

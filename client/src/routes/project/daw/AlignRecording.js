@@ -74,10 +74,11 @@ export default function AlignRecordingModalContent(props) {
       const crunker = new Crunker();
       let nonRecordedTrackURLs = Object.keys(props.trackMetadata)
         .filter((trackId) => {
-          // only include unmuted tracks that are not the recorded track
+          // only include unmuted tracks that are: 1) not the recorded track and 2) have recordings
           return (
             trackId !== props.recordedTrackId &&
-            !props.mutedTracks.includes(trackId)
+            !props.mutedTracks.includes(trackId) &&
+            Object.keys(props.trackMetadata[trackId].takes).length > 0
           );
         })
         .map((trackId) => {
@@ -86,6 +87,10 @@ export default function AlignRecordingModalContent(props) {
           const audio_url = props.trackMetadata[trackId].takes[takeId].s3_info;
           return audio_url;
         });
+      console.log(
+        "audio alignment tool: # tracks stacked together = " +
+          nonRecordedTrackURLs.length
+      );
       crunker
         .fetchAudio(...nonRecordedTrackURLs)
         .then((buffers) => {
