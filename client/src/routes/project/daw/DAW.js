@@ -281,7 +281,14 @@ class DAW extends Component {
     let recordedURL = URL.createObjectURL(file);
     let latency = 0; // in ms
     this.setState({ stopMicProcessing: false });
-    if (Object.keys(this.props.trackMetadata).length > 1) {
+    const numTotalTracks = Object.keys(this.props.trackMetadata).length;
+    const mutedTracks = this.state.mutedTracks.length;
+    console.log(
+      "stopping microphone, sending these muted tracks to alignment tool:",
+      this.state.mutedTracks
+    );
+    // only align track if there is more than 1 track, and if the user listened to another track while recording
+    if (numTotalTracks > 1 && numTotalTracks - mutedTracks > 1) {
       latency = await CustomDialog(
         <AlignRecordingModalContent
           recordedURL={recordedURL}
@@ -371,6 +378,7 @@ class DAW extends Component {
       // add
       newMutedTracks.push(trackId);
     }
+    console.log("new muted tracks:", newMutedTracks);
     this.setState({ mutedTracks: newMutedTracks });
   };
 

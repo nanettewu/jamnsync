@@ -21,6 +21,7 @@ export default function AlignRecordingModalContent(props) {
   const [bgWaveSurfer, setBgWaveSurfer] = useState(null);
   const [recWaveSurfer, setRecWaveSurfer] = useState(null);
   const [loadedAudio, setLoadedAudio] = useState(false);
+  const [mixedBackingTrackURL, setMixedBackingTrackURL] = useState(null);
 
   const [dragOffset, setDragOffset] = useState(0);
   const [latencyMagnitude, setLatencyMagnitude] = useState(0);
@@ -91,28 +92,45 @@ export default function AlignRecordingModalContent(props) {
         "audio alignment tool: # tracks stacked together = " +
           nonRecordedTrackURLs.length
       );
-      crunker
-        .fetchAudio(...nonRecordedTrackURLs)
-        .then((buffers) => {
-          // => [AudioBuffer, AudioBuffer]
-          return crunker.mergeAudio(buffers);
-        })
-        .then((merged) => {
-          // => AudioBuffer
-          return crunker.export(merged, "audio/mp3");
-        })
-        .then((output) => {
-          // => {blob, element, url}
-          bgWaveSurfer.load(output.url);
-          recWaveSurfer.load(props.recordedURL);
+      // only combine audio if necessary
+      if (nonRecordedTrackURLs.length > 1) {
+        console.log("using crunker to combine recordings");
+        crunker
+          .fetchAudio(...nonRecordedTrackURLs)
+          .then((buffers) => {
+            // => [AudioBuffer, AudioBuffer]
+            return crunker.mergeAudio(buffers);
+          })
+          .then((merged) => {
+            // => AudioBuffer
+            return crunker.export(merged, "audio/mp3");
+          })
+          .then((output) => {
+            // => {blob, element, url}
+            setMixedBackingTrackURL(output.url);
+            bgWaveSurfer.load(output.url);
+            recWaveSurfer.load(props.recordedURL);
 
-          bgWaveSurfer.setVolume(0.3);
-          recWaveSurfer.setVolume(0.3);
+            bgWaveSurfer.setVolume(0.3);
+            recWaveSurfer.setVolume(0.3);
 
-          bgWaveSurfer.zoom(80);
-          recWaveSurfer.zoom(80);
-          setLoadedAudio(true);
-        });
+            bgWaveSurfer.zoom(80);
+            recWaveSurfer.zoom(80);
+            setLoadedAudio(true);
+          });
+      } else {
+        console.log("using single track as backing track");
+        setMixedBackingTrackURL(nonRecordedTrackURLs[0]);
+        bgWaveSurfer.load(nonRecordedTrackURLs[0]);
+        recWaveSurfer.load(props.recordedURL);
+
+        bgWaveSurfer.setVolume(0.3); // TODO
+        recWaveSurfer.setVolume(0.3);
+
+        bgWaveSurfer.zoom(80);
+        recWaveSurfer.zoom(80);
+        setLoadedAudio(true);
+      }
     }
   }, [bgWaveSurfer, recWaveSurfer, loadedAudio, props]); // TODO check
 
@@ -146,6 +164,29 @@ export default function AlignRecordingModalContent(props) {
           </Draggable>
         </ModalContent>
         <ModalFooter>
+          <ModalButton
+            onClick={async () => {
+              console.log("downloading backing track");
+              const link = document.createElement("a");
+              link.href = mixedBackingTrackURL;
+              const d = new Date();
+              const datestring = `${d.getFullYear()}_${
+                d.getMonth() + 1
+              }_${d.getDate()}`;
+              const timestring = `${d.getHours()}_${d.getMinutes()}_${d.getDate()}_${
+                d.getHours() >= 12 ? "PM" : "AM"
+              }`;
+              const outputFilename = `backingtrackmix_${datestring}-${timestring}`;
+              link.setAttribute("download", outputFilename);
+
+              document.body.appendChild(link); // Append to html link element page
+              link.click(); // Start download
+              link.parentNode.removeChild(link); // Clean up and remove the link
+            }}
+            type={"light"}
+          >
+            Download Backing
+          </ModalButton>
           <ModalButton
             onClick={async () => {
               // Сlose the dialog and return the value

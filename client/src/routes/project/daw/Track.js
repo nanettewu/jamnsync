@@ -161,8 +161,6 @@ class Track extends Component {
       this.state.s3URL &&
       prevProps.masterVolume !== this.props.masterVolume
     ) {
-      console.log(this.audioFile.volume);
-      console.log(this.props.masterVolume);
       this.audioFile.volume = Math.min(1, this.props.masterVolume);
     }
   }
