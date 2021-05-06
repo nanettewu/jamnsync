@@ -7,6 +7,8 @@ import SyncRoundedIcon from "@material-ui/icons/SyncRounded";
 import IconButton from "@material-ui/core/IconButton";
 import Tooltip from "@material-ui/core/Tooltip";
 
+import { socket } from "../../App";
+
 class Project extends Component {
   constructor(props) {
     super(props);
@@ -18,6 +20,7 @@ class Project extends Component {
       project_hash: props.location.pathname.split("/").pop(),
       isCreatingTake: false,
       isDeletingTakeOrTrack: false,
+      onlineUsers: [],
     };
     if (this.state.project_hash === "project") {
       this.state.project_hash = null;
@@ -27,10 +30,53 @@ class Project extends Component {
     this.renameTrack = this.renameTrack.bind(this);
     this.createTake = this.createTake.bind(this);
     this.deleteTake = this.deleteTake.bind(this);
+
+    const username = JSON.parse(localStorage.getItem("userDetails")).name;
+    this.state.onlineUsers = [username];
+    console.log("[SOCKET.IO] sending request to JOIN project");
+    socket.emit("join project", {
+      channel: this.state.project_hash,
+      user: username,
+    });
   }
+
+  // SOCKET IO LISTENERS:
+
+  updateOnlineUsersListener = (data) => {
+    console.log("[SOCKET.IO] receiving updateOnlineUsers:", data.user_list);
+    this.setState({ onlineUsers: data.user_list });
+  };
+
+  updateProjectListener = () => {
+    console.log("[SOCKET.IO] receiving updateProject");
+    this.refresh();
+  };
+
+  // REACT MAIN FUNCTIONS:
 
   componentDidMount() {
     this.retrieveProject(this.state.project_hash);
+    console.log(`[SOCKET.IO] creating project listeners`);
+    socket.on("updateOnlineUsers", this.updateOnlineUsersListener);
+    socket.on("updateProject", this.updateProjectListener);
+  }
+
+  componentWillUnmount() {
+    console.log(
+      `[SOCKET.IO] removing project (${this.state.project_name}) listeners`
+    );
+    socket.off("updateOnlineUsers", this.updateOnlineUsersListener);
+    socket.off("updateProject", this.updateProjectListener);
+
+    const userDetails = localStorage.getItem("userDetails");
+    if (userDetails) {
+      console.log("[SOCKET.IO] sending request to LEAVE project");
+      const username = JSON.parse(userDetails).name;
+      socket.emit("leave project", {
+        channel: this.state.project_hash,
+        user: username,
+      });
+    }
   }
 
   componentDidUpdate(prevProps) {
@@ -120,6 +166,9 @@ class Project extends Component {
               track_name: track_name,
             };
             this.setState({ track_metadata: updatedTracks });
+            socket.emit("broadcast update project", {
+              channel: this.state.project_hash,
+            });
           }
         });
     }
@@ -147,6 +196,9 @@ class Project extends Component {
             let updatedTracks = Object.assign({}, this.state.track_metadata);
             updatedTracks[id].track_name = new_name;
             this.setState({ track_metadata: updatedTracks });
+            socket.emit("broadcast update project", {
+              channel: this.state.project_hash,
+            });
           }
         });
     }
@@ -176,6 +228,9 @@ class Project extends Component {
             this.setState({
               track_metadata: updatedTracks,
               isDeletingTakeOrTrack: false,
+            });
+            socket.emit("broadcast update project", {
+              channel: this.state.project_hash,
             });
             return true;
           }
@@ -218,6 +273,9 @@ class Project extends Component {
             track_metadata: updatedTracks,
             isCreatingTake: false,
           });
+          socket.emit("broadcast update project", {
+            channel: this.state.project_hash,
+          });
         } else {
           this.setState({ isCreatingTake: false });
         }
@@ -249,14 +307,20 @@ class Project extends Component {
             track_metadata: updatedTracks,
             isDeletingTakeOrTrack: false,
           });
+          socket.emit("broadcast update project", {
+            channel: this.state.project_hash,
+          });
         } else {
           this.setState({ isDeletingTakeOrTrack: false });
         }
+      })
+      .catch((error) => {
+        alert("Could not delete take due to server error (see console).");
+        this.setState({ isDeletingTakeOrTrack: false });
       });
   }
 
   refresh = () => {
-    console.log("refreshing project");
     this.retrieveProject(this.state.project_hash);
   };
 
@@ -308,10 +372,38 @@ class Project extends Component {
               </div>
             )}
           </div>
+          <div
+            style={{
+              marginLeft: "-5px",
+              marginTop: "10px",
+              marginBottom: "-10px",
+              fontSize: "12px",
+            }}
+          >
+            {this.state.onlineUsers.map((user, i) => {
+              return (
+                <div
+                  key={`user_${i}`}
+                  style={{ display: "inline-block", marginRight: "5px" }}
+                >
+                  <img
+                    src="images/daw/online.png"
+                    alt="online"
+                    width="8"
+                    height="8"
+                    style={{ marginLeft: "5px" }}
+                  />{" "}
+                  {user}{" "}
+                </div>
+              );
+            })}
+          </div>
           <div style={{ marginTop: "20px" }}>
             <DAW
               projectName={this.state.project_name}
+              projectHash={this.state.project_hash}
               trackMetadata={this.state.track_metadata}
+              numOnlineUsers={this.state.onlineUsers.length}
               retrieveProject={this.retrieveProject}
               createTrack={this.createTrack}
               deleteTrack={this.deleteTrack}

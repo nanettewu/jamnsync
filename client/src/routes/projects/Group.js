@@ -3,6 +3,8 @@ import Project from "./Project";
 import "./Group.css";
 import { Prompt, Confirm } from "react-st-modal";
 
+import { socket } from "../../App";
+
 const RENAME_GROUP_OPTION = "Rename Group";
 const DELETE_GROUP_OPTION = "Delete Group";
 
@@ -50,6 +52,7 @@ class Group extends Component {
                 },
               ]),
             });
+            socket.emit("broadcast update projects");
           }
         });
     }
@@ -79,6 +82,7 @@ class Group extends Component {
             this.setState({
               projects: updatedProjects,
             });
+            socket.emit("broadcast update projects");
           }
         });
     }
@@ -113,6 +117,7 @@ class Group extends Component {
             this.setState({
               projects: updatedProjects,
             });
+            socket.emit("broadcast update projects");
           }
         });
     }

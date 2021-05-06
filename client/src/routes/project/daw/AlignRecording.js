@@ -3,6 +3,7 @@ import {
   ModalContent,
   ModalFooter,
   ModalButton,
+  Confirm,
 } from "react-st-modal";
 import { useState, useEffect, useCallback } from "react";
 import "./AlignRecording.css";
@@ -15,6 +16,8 @@ export default function AlignRecordingModalContent(props) {
   const dialog = useDialog();
 
   const [isPlaying, setPlaying] = useState(false);
+  const [playbackTimer, setPlaybackTimer] = useState(null);
+  const [delayPlaybackTimer, setDelayPlaybackTimer] = useState(null);
   const [bgWaveSurfer, setBgWaveSurfer] = useState(null);
   const [recWaveSurfer, setRecWaveSurfer] = useState(null);
   const [loadedAudio, setLoadedAudio] = useState(false);
@@ -35,8 +38,8 @@ export default function AlignRecordingModalContent(props) {
       WaveSurfer.create({
         container: "#bg_waveform",
         waveColor: "#D9DCFF",
-        progressColor: "#4353FF",
-        cursorColor: "#4353FF",
+        progressColor: "#4353ff",
+        cursorColor: "#4353ff",
         cursorWidth: 1,
         height: 200,
         width: 1000,
@@ -48,8 +51,8 @@ export default function AlignRecordingModalContent(props) {
       WaveSurfer.create({
         container: "#rec_waveform",
         waveColor: "#D9DCFF",
-        progressColor: "#4353FF",
-        cursorColor: "#4353FF",
+        progressColor: "#4353ff",
+        cursorColor: "#4353ff",
         cursorWidth: 1,
         height: 200,
         width: 1000,
@@ -67,13 +70,15 @@ export default function AlignRecordingModalContent(props) {
   }, [bgWaveSurfer, recWaveSurfer, loadedAudio, dialog]);
 
   useEffect(() => {
-    // console.log("loading recordings");
-    // console.log(props.recordedURL, props.recordedTrackId, props.trackMetadata);
     if (bgWaveSurfer && recWaveSurfer && !loadedAudio) {
       const crunker = new Crunker();
       let nonRecordedTrackURLs = Object.keys(props.trackMetadata)
         .filter((trackId) => {
-          return trackId !== props.recordedTrackId;
+          // only include unmuted tracks that are not the recorded track
+          return (
+            trackId !== props.recordedTrackId &&
+            !props.mutedTracks.includes(trackId)
+          );
         })
         .map((trackId) => {
           // TODO: made executive decision to just pick latest track, but eventually need to fix how take state is stored so DAW Object can access it
@@ -81,7 +86,6 @@ export default function AlignRecordingModalContent(props) {
           const audio_url = props.trackMetadata[trackId].takes[takeId].s3_info;
           return audio_url;
         });
-      console.log(nonRecordedTrackURLs);
       crunker
         .fetchAudio(...nonRecordedTrackURLs)
         .then((buffers) => {
@@ -98,7 +102,7 @@ export default function AlignRecordingModalContent(props) {
           recWaveSurfer.load(props.recordedURL);
 
           bgWaveSurfer.setVolume(0.3);
-          recWaveSurfer.setVolume(0.2);
+          recWaveSurfer.setVolume(0.3);
 
           bgWaveSurfer.zoom(80);
           recWaveSurfer.zoom(80);
@@ -121,8 +125,8 @@ export default function AlignRecordingModalContent(props) {
             <LoadingGif text={"Preparing alignment tool..."} />
           ) : (
             <p>
-              Drag your recording left/right to align it, and move the red
-              cursor as a ruler to align peaks!
+              Drag your recording left/right to align it, and move the ruler to
+              align peaks!
             </p>
           )}
           <p>
@@ -138,10 +142,31 @@ export default function AlignRecordingModalContent(props) {
         </ModalContent>
         <ModalFooter>
           <ModalButton
+            onClick={async () => {
+              // Сlose the dialog and return the value
+              bgWaveSurfer.stop();
+              recWaveSurfer.stop();
+              clearTimeout(playbackTimer);
+              const result = await Confirm(
+                `Are you sure you want to scrap this recording?`,
+                "Scrap Recording"
+              );
+              if (result) {
+                console.log("scrapping recording");
+                dialog.close("scrap");
+              }
+            }}
+            type={"danger"}
+          >
+            Scrap Recording
+          </ModalButton>
+          <ModalButton
             onClick={() => {
               if (isPlaying) {
                 bgWaveSurfer.pause();
                 recWaveSurfer.pause();
+                clearTimeout(playbackTimer);
+                clearTimeout(delayPlaybackTimer);
               } else {
                 console.log("offset:", dragOffset);
 
@@ -154,20 +179,36 @@ export default function AlignRecordingModalContent(props) {
                 if (dragOffset > 0) {
                   console.log("[recorded early]: user wants to playback later");
                   console.log(latencyMagnitude);
-                  bgWaveSurfer.play(null, 15);
-                  setTimeout(() => {
-                    recWaveSurfer.play(3, 10 - latencyMagnitude / 1000);
-                  }, latencyMagnitude);
+                  setPlaybackTimer(
+                    setTimeout(() => {
+                      setPlaying(false);
+                    }, 7000)
+                  );
+                  bgWaveSurfer.play(null, 7);
+                  setDelayPlaybackTimer(
+                    setTimeout(() => {
+                      recWaveSurfer.play(3, 10 - latencyMagnitude / 1000);
+                    }, latencyMagnitude)
+                  );
                 } else if (dragOffset < 0) {
                   console.log(
                     "[recorded late]: user wants to playback earlier"
                   );
                   const latency = -latencyMagnitude;
                   console.log(latency);
+                  setPlaybackTimer(
+                    setTimeout(() => {
+                      setPlaying(false);
+                    }, 7000)
+                  );
                   bgWaveSurfer.play(null, 7);
                   recWaveSurfer.play(3 + latency / 1000, 10 + latency / 1000);
-                  // setLatencyMagnitude(latency);
                 } else {
+                  setPlaybackTimer(
+                    setTimeout(() => {
+                      setPlaying(false);
+                    }, 7000)
+                  );
                   bgWaveSurfer.play(null, 7);
                   recWaveSurfer.play(3, 10);
                 }
@@ -182,6 +223,7 @@ export default function AlignRecordingModalContent(props) {
               // Сlose the dialog and return the value
               bgWaveSurfer.stop();
               recWaveSurfer.stop();
+              clearTimeout(playbackTimer);
               console.log("returning value:", latencyMagnitude);
               dialog.close(Math.round(latencyMagnitude));
             }}

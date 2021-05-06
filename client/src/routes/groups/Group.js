@@ -10,6 +10,8 @@ import Menu from "@material-ui/core/Menu";
 import MenuItem from "@material-ui/core/MenuItem";
 import MoreHorizIcon from "@material-ui/icons/MoreHoriz";
 
+import { socket } from "../../App";
+
 const RENAME_GROUP_OPTION = "Rename Group";
 const DELETE_GROUP_OPTION = "Delete Group";
 const options = [RENAME_GROUP_OPTION, DELETE_GROUP_OPTION];
@@ -32,7 +34,6 @@ class Group extends Component {
       });
     this.addMember = this.addMember.bind(this);
     this.removeMember = this.removeMember.bind(this);
-    // this.getAllUsers = this.getAllUsers.bind(this);
   }
 
   componentDidUpdate(prevProps) {
@@ -57,22 +58,30 @@ class Group extends Component {
         resp.json().then((data) => ({ status: resp.status, body: data }))
       )
       .then((res) => {
-        console.log(res);
         return res.body;
       });
 
-    console.log(all_users);
     // perform get request to retrieve all available
-    const [newUserId, newUsername] = await CustomDialog(
+    const newMemberInfo = await CustomDialog(
       <AddMemberModalContent users={all_users} />,
       {
         title: "Add Member to " + this.props.name,
         showCloseIcon: true,
       }
     );
+    if (newMemberInfo === undefined || newMemberInfo === null) {
+      return;
+    }
+    const [newUserId, newUsername] = newMemberInfo;
     // perform post request to add user
     // console.log("newUserId:", newUserId, "newUsername:", newUsername);
-    if (newUserId && newUsername) {
+    if (
+      newUserId &&
+      Object.keys(this.state.group_membership).includes(newUserId)
+    ) {
+      // group member already exists
+      alert(`${newUsername} is already a member in group "${this.props.name}"`);
+    } else if (newUserId && newUsername) {
       const formData = new FormData();
       formData.append("group_id", this.props.id);
       formData.append("user_id", newUserId);
@@ -94,6 +103,7 @@ class Group extends Component {
             this.setState({
               group_membership: updatedMembership,
             });
+            socket.emit("broadcast update groups");
           }
         });
     }
@@ -128,6 +138,7 @@ class Group extends Component {
             this.setState({
               group_membership: updatedMembership,
             });
+            socket.emit("broadcast update groups");
           }
         });
     }

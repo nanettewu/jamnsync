@@ -7,6 +7,8 @@ import SyncRoundedIcon from "@material-ui/icons/SyncRounded";
 import IconButton from "@material-ui/core/IconButton";
 import Tooltip from "@material-ui/core/Tooltip";
 
+import { socket } from "../../App";
+
 class Groups extends Component {
   constructor() {
     super();
@@ -19,6 +21,25 @@ class Groups extends Component {
     this.createNewGroup = this.createNewGroup.bind(this);
     this.deleteGroup = this.deleteGroup.bind(this);
     this.renameGroup = this.renameGroup.bind(this);
+  }
+
+  // SOCKET IO LISTENERS:
+
+  updateGroupsListener = () => {
+    console.log("[SOCKET.IO] receiving updateGroups");
+    this.refresh();
+  };
+
+  // REACT MAIN FUNCTIONS
+
+  componentDidMount() {
+    console.log("[SOCKET.IO] creating Groups page listener");
+    socket.on("updateGroups", this.updateGroupsListener);
+  }
+
+  componentWillUnmount() {
+    console.log("[SOCKET.IO] removing Groups page listener");
+    socket.off("updateGroups", this.updateGroupsListener);
   }
 
   fetchGroups = () => {
@@ -94,6 +115,7 @@ class Groups extends Component {
             this.setState({
               groups: updatedGroups,
             });
+            socket.emit("broadcast update groups");
           }
         });
     }
@@ -127,6 +149,7 @@ class Groups extends Component {
             this.setState({
               groups: updatedGroups,
             });
+            socket.emit("broadcast update groups");
           }
         });
     }

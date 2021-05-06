@@ -14,7 +14,7 @@ function Login(props) {
 
   const onFailure = (res) => {
     console.log("Attempt to login failed. Error:", res);
-    alert("Error: " + res.error + ". " + res.details);
+    alert("Login error: " + res.error + ". ");
   };
 
   return (

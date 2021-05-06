@@ -3,10 +3,12 @@ awscli
 boto3
 botocore
 click
+eventlet
 ffmpeg
 Flask
 Flask-Login
 Flask-Migrate
+Flask_SocketIO
 Flask-SQLAlchemy
 gunicorn
 itsdangerous

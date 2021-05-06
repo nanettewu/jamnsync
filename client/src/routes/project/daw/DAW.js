@@ -16,6 +16,8 @@ import FiberManualRecordRoundedIcon from "@material-ui/icons/FiberManualRecordRo
 import Tooltip from "@material-ui/core/Tooltip";
 import Crunker from "crunker";
 
+import { socket } from "../../../App";
+
 const AudioContext = window.AudioContext || window.webkitAudioContext;
 const WebAudioRecorder = window.WebAudioRecorder; // https://github.com/higuma/web-audio-recorder-js
 const crunker = new Crunker();
@@ -32,11 +34,17 @@ class DAW extends Component {
       isBlocked: true,
       showCountdown: false,
       runningTime: 0,
+      mutedTracks: [],
       soloTracks: [],
       masterVolume: 0.5,
       initialLoad: true,
       isRehearsing: false,
       stopMicProcessing: false,
+      requestingGroupRecord: false,
+      requestingGroupPlayback: false,
+      receivedImmediateStop: false,
+      numGroupMembersPrepared: 1,
+      numGroupMembersTotal: 1,
     };
     this.audioContext = null;
     this.gumStream = null;
@@ -45,6 +53,76 @@ class DAW extends Component {
     this.toggleMasterRecord = this.toggleMasterRecord.bind(this);
     this.toggleMasterStop = this.toggleMasterStop.bind(this);
     this.stopMicrophone = this.stopMicrophone.bind(this);
+  }
+
+  // SOCKET IO LISTENERS:
+
+  beginGroupPlayListener = () => {
+    console.log("[SOCKET.IO] receiving begin group play");
+    this.toggleMasterPlay();
+    this.setState({ requestingGroupPlayback: false });
+  };
+
+  beginGroupStopListener = (data) => {
+    console.log(
+      "[SOCKET.IO] receiving begin group stop for " + this.props.projectName
+    );
+    console.log("immediate stop:", this.state.receivedImmediateStop);
+    if (!this.state.receivedImmediateStop) {
+      this.setState({ receivedImmediateStop: true });
+      this.toggleMasterStop();
+      const username = JSON.parse(localStorage.getItem("userDetails")).name;
+      if (typeof data.stopped_by === "string" && data.stopped_by !== username) {
+        alert(`${data.stopped_by} stopped!`);
+      }
+    }
+  };
+
+  beginGroupRecordListener = () => {
+    console.log("[SOCKET.IO] receiving begin group record");
+    this.toggleMasterRecord();
+    this.setState({ requestingGroupRecord: false });
+  };
+
+  updateNumPreparedListener = (data) => {
+    console.log("[SOCKET.IO] updating number of prepared group members");
+    this.setState({
+      numGroupMembersPrepared: data.num_prepared,
+      numGroupMembersTotal: data.num_total,
+    });
+  };
+
+  // REACT MAIN FUNCTIONS:
+
+  componentDidMount() {
+    navigator.mediaDevices
+      .getUserMedia({ audio: true })
+      .then(() => {
+        console.log("mic permission granted");
+        this.setState({ isBlocked: false });
+      })
+      .catch(() => {
+        console.log("MIC PERMISSIOM DENIED");
+        this.setState({ isBlocked: true });
+      });
+
+    this.setState({
+      isRecording: false,
+      masterRecord: false,
+      selectedTrackId: null,
+      soloTracks: [],
+      mutedTracks: [],
+    });
+
+    // create socket io listeners + keyboard input (spacebar) listener
+    console.log(
+      `[SOCKET.IO] ${this.props.projectName} | creating DAW listeners`
+    );
+    socket.on("beginGroupPlay", this.beginGroupPlayListener);
+    socket.on("beginGroupStop", this.beginGroupStopListener);
+    socket.on("beginGroupRecord", this.beginGroupRecordListener);
+    socket.on("updateNumPrepared", this.updateNumPreparedListener);
+    document.body.addEventListener("keypress", this.createAnnotation);
   }
 
   componentDidUpdate() {
@@ -63,25 +141,16 @@ class DAW extends Component {
     }
   }
 
-  componentDidMount() {
-    console.log("reloading DAW");
-    navigator.mediaDevices
-      .getUserMedia({ audio: true })
-      .then(() => {
-        console.log("mic permission granted");
-        this.setState({ isBlocked: false });
-      })
-      .catch(() => {
-        console.log("MIC PERMISSIOM DENIED");
-        this.setState({ isBlocked: true });
-      });
-
-    this.setState({
-      isRecording: false,
-      masterRecord: false,
-      selectedTrackId: null,
-      soloTracks: [],
-    });
+  componentWillUnmount() {
+    // remove socket io listeners + keyboard input (spacebar) listener
+    console.log(
+      `[SOCKET.IO] ${this.props.projectName} | removing DAW listeners`
+    );
+    socket.off("beginGroupPlay", this.beginGroupPlayListener);
+    socket.off("beginGroupStop", this.beginGroupStopListener);
+    socket.off("beginGroupRecord", this.beginGroupRecordListener);
+    socket.off("updateNumPrepared", this.updateNumPreparedListener);
+    document.body.removeEventListener("keypress", this.createAnnotation);
   }
 
   // TRACK OPERATIONS
@@ -97,7 +166,6 @@ class DAW extends Component {
   deleteTrack = (id, name) => {
     const successfulDelete = this.props.deleteTrack(id, name);
     if (successfulDelete) {
-      // if deleted a selected track, reset selected track
       this.setState({ selectedTrackId: null });
     }
   };
@@ -116,6 +184,9 @@ class DAW extends Component {
 
   toggleMasterPlay = () => {
     console.log("> master play");
+    if (this.state.masterPlay) {
+      return;
+    }
     this.setState((state) => {
       const startTime = Date.now() - this.state.runningTime;
       this.timer = setInterval(() => {
@@ -125,22 +196,24 @@ class DAW extends Component {
     });
   };
 
-  async toggleMasterStop() {
+  toggleMasterStop() {
     console.log("> master stop");
+    clearInterval(this.timer);
     if (!this.state.masterPlay) {
       return;
     }
-    clearInterval(this.timer);
     if (!this.state.isRecording) {
       this.setState({
         masterStop: true,
         runningTime: 0,
+        receivedImmediateStop: false,
       });
     } else {
       this.setState({
         masterStop: true,
         runningTime: 0,
         stopMicProcessing: true,
+        receivedImmediateStop: false,
       });
       //stop microphone access
       this.gumStream.getAudioTracks()[0].stop();
@@ -187,7 +260,7 @@ class DAW extends Component {
       this.recorder.setOptions({
         timeLimit: 600,
         encodeAfterRecord: true,
-        mp3: { bitRate: 320 },
+        mp3: { bitRate: 256 },
       });
 
       this.recorder.onComplete = async (recorder, blob) => {
@@ -215,6 +288,7 @@ class DAW extends Component {
           recordedURL={recordedURL}
           recordedTrackId={this.state.selectedTrackId}
           trackMetadata={this.props.trackMetadata}
+          mutedTracks={this.state.mutedTracks}
         />,
         {
           title: "Check Recording",
@@ -222,6 +296,14 @@ class DAW extends Component {
           isCanClose: false,
         }
       );
+      // delete recording instead
+      if (latency === "scrap") {
+        this.setState({
+          isRecording: false,
+          masterRecord: false,
+        });
+        return;
+      }
       console.log("latency:", latency);
     }
     const isManualUpload = false;
@@ -280,6 +362,20 @@ class DAW extends Component {
     this.setState({ soloTracks: newSoloTracks });
   };
 
+  updateMutedTracks = (trackId) => {
+    let newMutedTracks = [...this.state.mutedTracks];
+    let index = newMutedTracks.indexOf(trackId);
+
+    if (index !== -1) {
+      // remove
+      newMutedTracks.splice(index, 1);
+    } else {
+      // add
+      newMutedTracks.push(trackId);
+    }
+    this.setState({ mutedTracks: newMutedTracks });
+  };
+
   changeVolume = (value) => {
     this.setState({ masterVolume: value / 100 });
   };
@@ -334,7 +430,83 @@ class DAW extends Component {
       });
   };
 
+  requestGroupPlay = () => {
+    console.log("[SOCKET.IO] requesting group play");
+    socket.emit(
+      "prepare group play",
+      {
+        channel: this.props.projectHash,
+      },
+      (shouldPlay) => {
+        if (shouldPlay) {
+          this.toggleMasterPlay();
+        } else {
+          this.setState({
+            requestingGroupPlayback: true,
+          });
+        }
+      }
+    );
+  };
+
+  requestGroupStop = () => {
+    console.log("[SOCKET.IO] request immediate group stop");
+    const username = JSON.parse(localStorage.getItem("userDetails")).name;
+    socket.emit("immediate group stop", {
+      channel: this.props.projectHash,
+      user: username,
+    });
+  };
+
+  // TODO: needs to send which track it chose to record and
+  // make sure there are no conflicts with other tracks
+  requestGroupRecord = () => {
+    console.log("[SOCKET.IO] request group record");
+    if (this.state.selectedTrackId === null) {
+      alert("Select a track before requesting group record!");
+    } else {
+      socket.emit(
+        "prepare group record",
+        {
+          channel: this.props.projectHash,
+        },
+        (shouldRecord) => {
+          if (shouldRecord) {
+            this.toggleMasterRecord();
+          } else {
+            this.setState({
+              requestingGroupRecord: true,
+            });
+          }
+        }
+      );
+    }
+  };
+
+  cancelRequest = () => {
+    console.log("[SOCKET.IO] cancel current request");
+    socket.emit("cancel request", { channel: this.props.projectHash }, () => {
+      this.setState({
+        requestingGroupPlayback: false,
+        requestingGroupRecord: false,
+      });
+    });
+  };
+
+  // seek = (value) => {
+  //   console.log("seek:", value);
+  // };
+
+  createAnnotation = (event) => {
+    if (event.keyCode === 32 && this.state.masterPlay) {
+      console.log(
+        "SPACE BAR PRESS:" + this.formattedTime(this.state.runningTime)
+      );
+    }
+  };
+
   render() {
+    const otherMembersOnline = this.props.numOnlineUsers > 1;
     return (
       <div>
         <div>
@@ -357,6 +529,8 @@ class DAW extends Component {
                       deleteTake={this.deleteTake}
                       soloTracks={this.state.soloTracks}
                       updateSoloTracks={this.updateSoloTracks}
+                      updateMutedTracks={this.updateMutedTracks}
+                      claimedTracks={this.state.claimedTracks}
                       masterVolume={this.state.masterVolume}
                       renameTrack={this.renameTrack}
                       deleteTrack={this.deleteTrack}
@@ -397,6 +571,58 @@ class DAW extends Component {
           <p style={{ marginBottom: "5px" }}>
             <b>Master Controls</b>
           </p>
+          {otherMembersOnline && (
+            <button
+              style={{ marginLeft: "10px" }}
+              onClick={this.requestGroupRecord}
+              disabled={
+                this.state.masterPlay ||
+                this.state.requestingGroupRecord ||
+                this.state.requestingGroupPlayback
+              }
+            >
+              {this.state.requestingGroupRecord ? "waiting..." : "group record"}
+            </button>
+          )}
+          {otherMembersOnline && (
+            <button
+              onClick={this.requestGroupStop}
+              disabled={!this.state.masterPlay}
+            >
+              group stop
+            </button>
+          )}
+          {otherMembersOnline && (
+            <button
+              onClick={this.requestGroupPlay}
+              disabled={
+                this.state.masterPlay ||
+                this.state.requestingGroupPlayback ||
+                this.state.requestingGroupRecord
+              }
+            >
+              {this.state.requestingGroupPlayback ? "waiting..." : "group play"}
+            </button>
+          )}
+          {otherMembersOnline && (
+            <button
+              onClick={this.cancelRequest}
+              disabled={
+                !this.state.requestingGroupRecord &&
+                !this.state.requestingGroupPlayback
+              }
+            >
+              cancel request
+            </button>
+          )}
+          {(this.state.requestingGroupPlayback ||
+            this.state.requestingGroupRecord) &&
+            this.state.numGroupMembersPrepared !== 0 && (
+              <div style={{ marginLeft: "10px", marginTop: "10px" }}>
+                {this.state.numGroupMembersPrepared}/
+                {this.state.numGroupMembersTotal} ready
+              </div>
+            )}
           {this.state.stopMicProcessing && (
             <LoadingGif text={"Saving Recording..."} />
           )}
@@ -406,7 +632,7 @@ class DAW extends Component {
             Please allow access to your mic to record!
           </p>
         )}
-        {/* TODO: Live Monitoring, Rehearse */}
+        {/* TODO: Live Monitoring */}
         <Tooltip title="Record selected track" arrow>
           <span>
             <IconButton
@@ -454,12 +680,11 @@ class DAW extends Component {
             </IconButton>
           </span>
         </Tooltip>{" "}
-        {this.formattedTime(this.state.runningTime)}
         <div style={{ display: "flex", marginTop: "-45px" }}>
           <div
             style={{
               position: "relative",
-              marginLeft: "245px",
+              marginLeft: "175px",
               width: "100px",
             }}
           >
@@ -471,10 +696,27 @@ class DAW extends Component {
               onChange={this.changeVolume}
             />
           </div>
+          <span style={{ marginLeft: "30px", marginTop: "5px" }}>
+            {this.formattedTime(this.state.runningTime)}
+          </span>
+          {/* <div
+            style={{
+              position: "absolute",
+              marginLeft: "395px",
+              width: "200px",
+            }}
+          >
+            Seek
+            <Slider min={0} max={100} defaultValue={0} onChange={this.seek} />
+          </div> */}
           <Tooltip
             title="Download full track with latest takes"
             arrow
-            style={{ marginLeft: "10px", marginTop: "-10px" }}
+            style={{
+              position: "absolute",
+              marginLeft: "380px",
+              marginTop: "-10px",
+            }}
           >
             <span>
               <IconButton
@@ -495,7 +737,7 @@ class DAW extends Component {
             className="timer"
             style={{
               position: "absolute",
-              marginLeft: "440px",
+              marginLeft: "500px",
               marginTop: "-105px",
             }}
           >

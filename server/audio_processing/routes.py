@@ -1,6 +1,7 @@
 from flask import current_app as app
 from flask import request, send_file, jsonify, Response, abort, redirect
 from flask_login import current_user, login_required
+from flask_socketio import join_room, leave_room
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import and_
 
@@ -10,7 +11,7 @@ import shortuuid
 import datetime
 import pytz
 
-from audio_processing.app import db
+from audio_processing.app import db, socketio
 from audio_processing.aws import upload_take, delete_take, delete_project
 from audio_processing.models import User, RehearsalGroup, group_membership, Project, Track, Take
 
@@ -43,6 +44,171 @@ def not_found(e):
     return app.send_static_file('index.html')
 
 ############################################################################
+# Socket.IO
+############################################################################
+
+prepared_play_by_room = {}
+prepared_record_by_room = {}
+all_clients_by_room = {}
+client_names = {}
+    
+@socketio.on('connect')
+def connected():
+    print('[SOCKET.IO] client connected', request.sid)
+        
+@socketio.on('disconnect')
+def disconnected():
+    print('[SOCKET.IO] client disconnected', request.sid)
+    if request.sid in client_names:
+        del client_names[request.sid]
+        
+    for room in prepared_play_by_room:
+        if request.sid in prepared_play_by_room[room]:
+            print("[SOCKET.IO] > removing client from prepared play, room", room)
+            prepared_play_by_room[room].remove(request.sid)
+        if len(prepared_play_by_room[room]) == 0:
+            del prepared_play_by_room[room]
+    
+    for room in prepared_record_by_room:
+        if request.sid in prepared_record_by_room[room]:
+            print("[SOCKET.IO] > removing client from prepared record, room", room)
+            prepared_record_by_room[room].remove(request.sid)
+        if len(prepared_record_by_room[room]) == 0:
+            del prepared_record_by_room[room]
+        
+    for room in all_clients_by_room:
+        if request.sid in all_clients_by_room[room]:
+            print("[SOCKET.IO] > removing client from all, room", room)
+            all_clients_by_room[room].remove(request.sid)
+        # reset memoizing of room if no more clients left
+        if len(all_clients_by_room[room]) == 0:
+            del all_clients_by_room[room]
+    
+@socketio.on('join project')
+def join_project(data):
+    username = data['user']
+    room = data['channel']
+    client_names[request.sid] = username
+    print('###############################')
+    print(f"[SOCKET.IO] JOIN: {username} has joined the project")
+    if not room in all_clients_by_room:
+        all_clients_by_room[room] = set()
+    all_clients_by_room[room].add(request.sid)
+    print('[SOCKET.IO] updated clients by room:' + str(all_clients_by_room))
+    print('###############################')
+    join_room(room)
+    if len(all_clients_by_room[room]) > 1:
+        user_list = []
+        for user_id in all_clients_by_room[room]:
+            if user_id in client_names:
+                user_list.append(client_names[user_id])
+        print("[SOCKET.IO] emit online users: " + str(user_list))
+        user_list.sort()
+        socketio.emit('updateOnlineUsers', {'user_list': user_list}, to=room)
+
+@socketio.on('leave project')
+def leave_project(data):
+    username = data['user']
+    room = data['channel']
+    if room in all_clients_by_room and request.sid in all_clients_by_room[room]:
+        print('###############################')
+        print(f"[SOCKET.IO] LEAVE: {username} has left the project")
+        all_clients_by_room[room].remove(request.sid)
+        leave_room(room)
+        user_list = []
+        for user_id in all_clients_by_room[room]:
+            user_list.append(client_names[user_id])
+        print("[SOCKET.IO] emit online users: " + str(user_list))
+        user_list.sort()
+        socketio.emit('updateOnlineUsers', {'user_list': user_list}, to=room)
+        
+        # clean up
+        if len(all_clients_by_room[room]) == 0:
+            del all_clients_by_room[room]
+        
+    print('[SOCKET.IO] updated clients by room: ' + str(all_clients_by_room))
+    print('###############################')
+
+@socketio.on('prepare group play')
+def prepare_group_play(data):
+    print('[SOCKET.IO] received request to group play: ' + str(data))
+    room = data['channel']
+    if room not in prepared_play_by_room:  
+        prepared_play_by_room[room] = set()
+    prepared_play_by_room[room].add(request.sid)
+    # if all clients are ready to play
+    print('[SOCKET.IO] prepared clients: ' + str(prepared_play_by_room[room]))
+    print('[SOCKET.IO] all clients: ' + str(all_clients_by_room[room]))
+    if prepared_play_by_room[room] == all_clients_by_room[room]: 
+        del prepared_play_by_room[room]
+        print("[SOCKET.IO] emit group play")
+        socketio.emit('beginGroupPlay', to=room)
+        return True
+    
+    print("[SOCKET.IO] not ready to play yet")
+    socketio.emit('updateNumPrepared', {'num_prepared':len(prepared_play_by_room[room]), 'num_total':len(all_clients_by_room[room])}, to=room )
+    return False
+
+@socketio.on('immediate group stop')
+def immediate_group_stop(data):
+    user = data["user"]
+    room = data["channel"]
+    print(f"[SOCKET.IO] received request to immediately stop from {user} to {room}")
+    print("[SOCKET.IO] emit group stop")
+    socketio.emit('beginGroupStop', {'stopped_by': user}, to=room)
+    
+@socketio.on('cancel request')
+def cancel_request(data):
+    room = data["channel"]
+    if room in prepared_play_by_room and request.sid in prepared_play_by_room[room]:
+        prepared_play_by_room[room].remove(request.sid)
+        socketio.emit('updateNumPrepared', {'num_prepared':len(prepared_play_by_room[room]), 'num_total':len(all_clients_by_room[room])}, to=room )
+    elif room in prepared_play_by_room and request.sid in prepared_play_by_room[room]:
+        prepared_record_by_room[room].remove(request.sid)
+        socketio.emit('updateNumPrepared', {'num_prepared':len(prepared_record_by_room[room]), 'num_total':len(all_clients_by_room[room])}, to=room )
+    print(f"[SOCKET.IO] cancelling request for {request.sid} in project {room}")
+    return True
+
+@socketio.on('prepare group record')
+def prepare_group_record(data):
+    print('[SOCKET.IO] received request to group record: ' + str(data))
+    room = data['channel']
+    if room not in prepared_record_by_room:  
+        prepared_record_by_room[room] = set()
+    prepared_record_by_room[room].add(request.sid)
+    # if all clients are ready to record
+    print('[SOCKET.IO] prepared clients: ' + str(prepared_record_by_room[room]))
+    print('[SOCKET.IO] all clients: ' + str(all_clients_by_room[room]))
+    if prepared_record_by_room[room] == all_clients_by_room[room]: 
+        del prepared_record_by_room[room]
+        print("[SOCKET.IO] emit group record")
+        socketio.emit('beginGroupRecord', room=room)
+        return True
+    
+    print("[SOCKET.IO] not ready to record yet")
+    socketio.emit('updateNumPrepared', {'num_prepared':len(prepared_record_by_room[room]), 'num_total':len(all_clients_by_room[room])}, to=room )
+    return False
+
+@socketio.on('broadcast update groups')
+def broadcast_update_groups():
+    print('[SOCKET.IO] received broadcast update groups')
+    print("[SOCKET.IO] emit updateGroups for Groups page")
+    socketio.emit('updateGroups', {'data': ''})
+    
+@socketio.on('broadcast update projects')
+def broadcast_update_projects():
+    print('[SOCKET.IO] received broadcast update projects')
+    print("[SOCKET.IO] emit updateProjects for Projects page")
+    socketio.emit('updateProjects', {'data': ''})
+    
+@socketio.on('broadcast update project')
+def broadcast_update_project(data):
+    room = data["channel"]
+    print(f"[SOCKET.IO] received broadcast update project for {room}")
+    print("[SOCKET.IO] emit updateProject for DAW page")
+    socketio.emit('updateProject', {'data': ''}, room=room)
+
+############################################################################
 # API
 ############################################################################
 
@@ -57,7 +223,6 @@ def get_all_users():
     users = User.query.all()
     for user in users:
         user_id_to_names[user.id] = user.user_name
-    print(user_id_to_names)
     return jsonify(user_id_to_names)
 
 ####################################
@@ -198,7 +363,7 @@ def add_delete_group_member():
         print(f"Integrity Error: {e}")
         db.session.rollback()
         return abort(HTTPStatus.BAD_REQUEST)
-    
+
     return jsonify({'message': return_message})
 
 ####################################

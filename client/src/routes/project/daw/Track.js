@@ -3,6 +3,8 @@ import "./Track.css";
 import Dropdown from "react-dropdown";
 import "react-dropdown/style.css";
 import { Confirm } from "react-st-modal"; // https://github.com/Nodlik/react-st-modal
+import Slider from "rc-slider";
+import "rc-slider/assets/index.css";
 
 import IconButton from "@material-ui/core/IconButton";
 import Tooltip from "@material-ui/core/Tooltip";
@@ -121,7 +123,7 @@ class Track extends Component {
       (!this.state.selected ||
         (this.state.selected && !this.props.masterRecord))
     ) {
-      console.log(`[${this.props.trackName}] playing 1: ${this.state.s3URL}`);
+      console.log(`[${this.props.trackName}] playing: ${this.state.s3URL}`);
       this.audioFile.currentTime = 0;
       this.audioFile.play();
       this.setState({ playing: true });
@@ -186,11 +188,8 @@ class Track extends Component {
   };
 
   changeVolume = (value) => {
-    // convert linear 1->100 to log 1->100 via f(n) = 50 * log(n)
-    // const volume = Math.max(0, 40 * Math.log10(value));
-    //   Math.max(0, (1 - Math.log(value) / Math.log(0.5)) / 9.5) * 100;
     const volume = value;
-    this.audioFile.volume = (this.props.masterVolume * volume) / 80;
+    this.audioFile.volume = (this.props.masterVolume / 100) * volume;
     this.setState({ volume: volume });
   };
 
@@ -234,6 +233,7 @@ class Track extends Component {
   };
 
   mute = () => {
+    this.props.updateMutedTracks(this.props.trackId);
     this.audioFile.muted = !this.state.muted;
     this.setState({
       muted: !this.state.muted,
@@ -364,6 +364,11 @@ class Track extends Component {
         return acc;
       }, [])
       .reverse();
+
+    const buttonSelectText = this.state.selected
+      ? "Unselect"
+      : "Select to Record";
+
     return (
       <div style={{ marginLeft: "5px" }}>
         <hr />
@@ -388,7 +393,7 @@ class Track extends Component {
             onClick={this.selectToRecord}
             style={{ marginLeft: "5px" }}
           >
-            {this.state.selected ? "Unselect" : "Select to Record"}
+            {buttonSelectText}
           </button>
           <IconButton
             aria-label="more"
@@ -428,13 +433,13 @@ class Track extends Component {
           </Menu>
         </div>
         {this.state.s3URL && Object.keys(this.props.takes).length > 0 && (
-          <div style={{ marginBottom: "18px" }}>
+          <div style={{ marginBottom: "18px", marginTop: "-12px" }}>
             <Tooltip title="Mute" arrow>
               <IconButton
                 disableRipple
                 aria-label="Mute this track"
                 onClick={this.mute}
-                style={{ marginTop: "-12px" }}
+                style={{ marginTop: "5px" }}
               >
                 {this.state.muted ? (
                   <VolumeOffRoundedIcon
@@ -451,7 +456,7 @@ class Track extends Component {
                 disableRipple
                 aria-label="Solo this track"
                 onClick={this.solo}
-                style={{ marginTop: "-12px" }}
+                style={{ marginTop: "5px" }}
               >
                 {this.state.soloing ? (
                   <HeadsetRoundedIcon
@@ -463,7 +468,7 @@ class Track extends Component {
                 )}
               </IconButton>
             </Tooltip>
-            {/* <div
+            <div
               style={{
                 display: "inline-block",
                 marginLeft: "10px",
@@ -474,29 +479,25 @@ class Track extends Component {
               Volume
               <Slider
                 min={0}
-                max={80}
-                defaultValue={40}
+                max={100}
+                defaultValue={100}
                 onChange={this.changeVolume}
               />
-            </div> */}
+            </div>
 
             <audio
-              style={{
-                display: "inline-flex",
-                marginLeft: "10px",
-                marginBottom: "-7px",
-              }}
               id={`audio-file-${this.props.trackId}`}
               src={this.state.s3URL}
-              controls
               preload="auto"
               autobuffer="true"
             />
 
             <div
               style={{
-                marginLeft: "10px",
+                marginLeft: "20px",
+                marginTop: "10px",
                 display: "inline-flex",
+                position: "absolute",
                 width: 310,
               }}
             >
@@ -507,11 +508,23 @@ class Track extends Component {
                 placeholder="Select an option"
               />
             </div>
-            <div style={{ display: "inline-flex" }}>
+            <div
+              style={{
+                display: "inline-flex",
+                position: "absolute",
+                marginLeft: "330px",
+                marginTop: "15px",
+              }}
+            >
               <form method="get" action={this.state.s3URL}>
                 <button type="submit">Download Take</button>
               </form>
-              <button onClick={this.deleteTake}>Delete Take</button>
+              <button
+                disabled={this.props.masterPlay}
+                onClick={this.deleteTake}
+              >
+                Delete Take
+              </button>
             </div>
           </div>
         )}

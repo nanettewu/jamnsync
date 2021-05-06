@@ -16,6 +16,9 @@ import WebAudio from "./routes/temp-webaudio/WebAudio"; // temp
 
 import PrivateRoute from "./utils/components/PrivateRoute";
 
+import io from "socket.io-client";
+export const socket = io(process.env.ROOT_URL);
+
 const history = createHashHistory();
 
 class App extends Component {
@@ -165,8 +168,6 @@ class App extends Component {
               authed={this.state.isUserLoggedIn}
             />
           </div>
-
-          {/* <Footer /> */}
         </div>
       </HashRouter>
     );

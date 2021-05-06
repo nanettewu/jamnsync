@@ -4,7 +4,7 @@
 
 .cursor {
   height: 500px;
-  margin-top: 25px;
+  margin-top: 6px;
   margin-left: 292px;
   position: absolute;
   z-index: 10;
@@ -14,7 +14,7 @@
   margin-top: 80px;
   margin-left: 8px;
   height: 470px;
-  border-left: 2px solid red;
+  border-left: 2px solid #b3bde4;
 }
 
 .point {
@@ -23,7 +23,7 @@
   border-radius: 2px;
   border-top: 10px solid transparent;
   border-bottom: 10px solid transparent;
-  border-left: 18px solid red;
+  border-left: 18px solid #b3bde4;
   float: right;
   transform: rotate(90deg);
 }
