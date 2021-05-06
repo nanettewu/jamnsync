@@ -552,7 +552,9 @@ def create_take():
         return f"file exceeds {NUM_MEGABYTES}B", HTTPStatus.REQUEST_ENTITY_TOO_LARGE
 
     # TODO: adds buffer to audio track if not a backing track
-    song = AudioSegment.from_file(filepath)
+    extension = filepath.rsplit('.')[1]
+    print(f"fixing audio trimming for path: {filepath} with extension '{extension}'")
+    song = AudioSegment.from_file(filepath, extension)
     # don't trim audio if track is already aligned
     if is_manual_upload:
         delta = 0
