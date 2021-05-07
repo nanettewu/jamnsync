@@ -151,8 +151,8 @@ export default function AlignRecordingModalContent(props) {
             <LoadingGif text={"Preparing alignment tool..."} />
           ) : (
             <p>
-              Drag your recording left/right to align it, and move the ruler to
-              align peaks!
+              Drag your recording left/right to align it, and move the cursor
+              like a ruler to align peaks!
             </p>
           )}
           <p>
@@ -167,7 +167,7 @@ export default function AlignRecordingModalContent(props) {
           </Draggable>
         </ModalContent>
         <ModalFooter>
-          <ModalButton
+          {/* <ModalButton
             onClick={async () => {
               console.log("downloading backing track");
               const link = document.createElement("a");
@@ -189,7 +189,7 @@ export default function AlignRecordingModalContent(props) {
             type={"light"}
           >
             Download Backing
-          </ModalButton>
+          </ModalButton> */}
           <ModalButton
             onClick={async () => {
               // Сlose the dialog and return the value

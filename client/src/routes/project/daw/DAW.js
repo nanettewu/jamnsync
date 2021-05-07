@@ -3,7 +3,7 @@ import "./DAW.css";
 import Track from "./Track";
 import LoadingGif from "./LoadingGif";
 import { CountdownCircleTimer } from "react-countdown-circle-timer";
-import { CustomDialog } from "react-st-modal"; // https://github.com/Nodlik/react-st-modal
+import { CustomDialog, Confirm } from "react-st-modal"; // https://github.com/Nodlik/react-st-modal
 import AlignRecordingModalContent from "./AlignRecording";
 import Slider from "rc-slider";
 import "rc-slider/assets/index.css";
@@ -45,6 +45,7 @@ class DAW extends Component {
       receivedImmediateStop: false,
       numGroupMembersPrepared: 1,
       numGroupMembersTotal: 1,
+      preparedGroupAction: null,
     };
     this.audioContext = null;
     this.gumStream = null;
@@ -60,7 +61,10 @@ class DAW extends Component {
   beginGroupPlayListener = () => {
     console.log("[SOCKET.IO] receiving begin group play");
     this.toggleMasterPlay();
-    this.setState({ requestingGroupPlayback: false });
+    this.setState({
+      requestingGroupPlayback: false,
+      preparedGroupAction: null,
+    });
   };
 
   beginGroupStopListener = (data) => {
@@ -80,7 +84,7 @@ class DAW extends Component {
   beginGroupRecordListener = () => {
     console.log("[SOCKET.IO] receiving begin group record");
     this.toggleMasterRecord();
-    this.setState({ requestingGroupRecord: false });
+    this.setState({ requestingGroupRecord: false, preparedGroupAction: null });
   };
 
   updateNumPreparedListener = (data) => {
@@ -88,7 +92,34 @@ class DAW extends Component {
     this.setState({
       numGroupMembersPrepared: data.num_prepared,
       numGroupMembersTotal: data.num_total,
+      preparedGroupAction: data.action,
     });
+  };
+
+  notifyWaitingGroupMember = async (data) => {
+    console.log(
+      "[SOCKET.IO] received request from group member " +
+        data.requester +
+        " to request " +
+        data.action
+    );
+    const readyToJoin = await Confirm(
+      `${data.requester} wants to group ${data.action}. Ready to join?`,
+      "Incoming Request",
+      "Yes",
+      "No"
+    );
+    if (readyToJoin) {
+      console.log(`[SOCKET.IO] ready to join for ${data.action}!`);
+      if (data.action === "play") {
+        this.requestGroupPlay();
+      } else {
+        this.requestGroupRecord();
+      }
+    } else {
+      console.log(`[SOCKET.IO] not ready to join for ${data.action}...`);
+      this.setState({ preparedGroupAction: data.action });
+    }
   };
 
   // REACT MAIN FUNCTIONS:
@@ -121,6 +152,7 @@ class DAW extends Component {
     socket.on("beginGroupStop", this.beginGroupStopListener);
     socket.on("beginGroupRecord", this.beginGroupRecordListener);
     socket.on("updateNumPrepared", this.updateNumPreparedListener);
+    socket.on("notifyWaitingGroupMember", this.notifyWaitingGroupMember);
     document.body.addEventListener("keypress", this.createAnnotation);
   }
 
@@ -149,6 +181,7 @@ class DAW extends Component {
     socket.off("beginGroupStop", this.beginGroupStopListener);
     socket.off("beginGroupRecord", this.beginGroupRecordListener);
     socket.off("updateNumPrepared", this.updateNumPreparedListener);
+    socket.off("notifyWaitingGroupMember", this.notifyWaitingGroupMember);
     document.body.removeEventListener("keypress", this.createAnnotation);
   }
 
@@ -282,13 +315,13 @@ class DAW extends Component {
     let latency = 0; // in ms
     this.setState({ stopMicProcessing: false });
     const numTotalTracks = Object.keys(this.props.trackMetadata).length;
-    const mutedTracks = this.state.mutedTracks.length;
-    console.log(
-      "stopping microphone, sending these muted tracks to alignment tool:",
-      this.state.mutedTracks
-    );
-    // only align track if there is more than 1 track, and if the user listened to another track while recording
-    if (numTotalTracks > 1 && numTotalTracks - mutedTracks > 1) {
+    // const mutedTracks = this.state.mutedTracks.length;
+    // console.log(
+    //   "stopping microphone, sending these muted tracks to alignment tool:",
+    //   this.state.mutedTracks
+    // );
+    // only align track if there is more than 1 track
+    if (numTotalTracks > 1) {
       latency = await CustomDialog(
         <AlignRecordingModalContent
           recordedURL={recordedURL}
@@ -449,6 +482,7 @@ class DAW extends Component {
         } else {
           this.setState({
             requestingGroupPlayback: true,
+            preparedGroupAction: "play",
           });
         }
       }
@@ -482,6 +516,7 @@ class DAW extends Component {
           } else {
             this.setState({
               requestingGroupRecord: true,
+              preparedGroupAction: "record",
             });
           }
         }
@@ -495,6 +530,7 @@ class DAW extends Component {
       this.setState({
         requestingGroupPlayback: false,
         requestingGroupRecord: false,
+        preparedGroupAction: null,
       });
     });
   };
@@ -621,12 +657,13 @@ class DAW extends Component {
               cancel request
             </button>
           )}
-          {(this.state.requestingGroupPlayback ||
-            this.state.requestingGroupRecord) &&
+          {this.state.preparedGroupAction !== null &&
             this.state.numGroupMembersPrepared !== 0 && (
               <div style={{ marginLeft: "10px", marginTop: "10px" }}>
                 {this.state.numGroupMembersPrepared}/
                 {this.state.numGroupMembersTotal} ready
+                {this.state.preparedGroupAction &&
+                  ` for ${this.state.preparedGroupAction}`}
               </div>
             )}
           {this.state.stopMicProcessing && (

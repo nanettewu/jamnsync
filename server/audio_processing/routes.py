@@ -147,7 +147,9 @@ def prepare_group_play(data):
         return True
     
     print("[SOCKET.IO] not ready to play yet")
-    socketio.emit('updateNumPrepared', {'num_prepared':len(prepared_play_by_room[room]), 'num_total':len(all_clients_by_room[room])}, to=room )
+    requester = client_names[request.sid] if request.sid in client_names else None
+    socketio.emit('notifyWaitingGroupMember', {'requester': requester, 'action': "play"}, to=room, include_self=False)
+    socketio.emit('updateNumPrepared', {'num_prepared':len(prepared_play_by_room[room]), 'num_total':len(all_clients_by_room[room]), 'action': "play"}, to=room )
     return False
 
 @socketio.on('immediate group stop')
@@ -163,10 +165,10 @@ def cancel_request(data):
     room = data["channel"]
     if room in prepared_play_by_room and request.sid in prepared_play_by_room[room]:
         prepared_play_by_room[room].remove(request.sid)
-        socketio.emit('updateNumPrepared', {'num_prepared':len(prepared_play_by_room[room]), 'num_total':len(all_clients_by_room[room])}, to=room )
+        socketio.emit('updateNumPrepared', {'num_prepared':len(prepared_play_by_room[room]), 'num_total':len(all_clients_by_room[room]), 'action': "play"}, to=room )
     elif room in prepared_play_by_room and request.sid in prepared_play_by_room[room]:
         prepared_record_by_room[room].remove(request.sid)
-        socketio.emit('updateNumPrepared', {'num_prepared':len(prepared_record_by_room[room]), 'num_total':len(all_clients_by_room[room])}, to=room )
+        socketio.emit('updateNumPrepared', {'num_prepared':len(prepared_record_by_room[room]), 'num_total':len(all_clients_by_room[room]), 'action': "record"}, to=room )
     print(f"[SOCKET.IO] cancelling request for {request.sid} in project {room}")
     return True
 
@@ -187,7 +189,9 @@ def prepare_group_record(data):
         return True
     
     print("[SOCKET.IO] not ready to record yet")
-    socketio.emit('updateNumPrepared', {'num_prepared':len(prepared_record_by_room[room]), 'num_total':len(all_clients_by_room[room])}, to=room )
+    requester = client_names[request.sid] if request.sid in client_names else None
+    socketio.emit('notifyWaitingGroupMember', {'requester': requester, 'action': "record"}, to=room, include_self=False)
+    socketio.emit('updateNumPrepared', {'num_prepared':len(prepared_record_by_room[room]), 'num_total':len(all_clients_by_room[room]), 'action': "record"}, to=room )
     return False
 
 @socketio.on('broadcast update groups')
