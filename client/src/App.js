@@ -7,13 +7,9 @@ import { createHashHistory } from "history";
 import Login from "./components/Login";
 import Logout from "./components/Logout";
 import Project from "./routes/project/Project";
-import ProjectSearch from "./routes/project/ProjectSearch";
 import Home from "./routes/home/Home";
 import Projects from "./routes/projects/Projects";
 import Groups from "./routes/groups/Groups";
-import { EmbeddedJitsi } from "./routes/temp-jitsi/EmbeddedJitsi"; // temp
-import WebAudio from "./routes/temp-webaudio/WebAudio"; // temp
-
 import PrivateRoute from "./utils/components/PrivateRoute";
 
 import io from "socket.io-client";
@@ -147,24 +143,8 @@ class App extends Component {
               authed={this.state.isUserLoggedIn}
             />
             <PrivateRoute
-              exact
-              path={"/project"}
-              component={ProjectSearch}
-              authed={this.state.isUserLoggedIn}
-            />
-            <PrivateRoute
               path="/project/"
               component={Project}
-              authed={this.state.isUserLoggedIn}
-            />
-            <PrivateRoute
-              path="/jitsi"
-              component={EmbeddedJitsi}
-              authed={this.state.isUserLoggedIn}
-            />
-            <PrivateRoute
-              path="/webaudio"
-              component={WebAudio}
               authed={this.state.isUserLoggedIn}
             />
           </div>
