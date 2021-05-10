@@ -280,17 +280,7 @@ class Track extends Component {
     console.log("deleting take");
     const targetTake = this.state.selectedTake;
     const takeInfo = this.props.takes[targetTake];
-    let d;
-    if (takeInfo["date_uploaded"].lastIndexOf(" ") !== -1) {
-      d = new Date(
-        takeInfo["date_uploaded"].substr(
-          0,
-          takeInfo["date_uploaded"].lastIndexOf(" ") + 1
-        )
-      );
-    } else {
-      d = new Date(takeInfo["date_uploaded"]);
-    }
+    const d = new Date(takeInfo["date_uploaded"]);
     const formattedDateTime = d.toLocaleString("en-US");
 
     const name = `Take ${targetTake} - ${formattedDateTime}`;
