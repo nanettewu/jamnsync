@@ -1,5 +1,4 @@
 import React, { Component } from "react";
-import "./Track.css";
 import Dropdown from "react-dropdown";
 import "react-dropdown/style.css";
 import { Confirm } from "react-st-modal"; // https://github.com/Nodlik/react-st-modal
@@ -15,8 +14,8 @@ import HeadsetRoundedIcon from "@material-ui/icons/HeadsetRounded";
 import VolumeOffRoundedIcon from "@material-ui/icons/VolumeOffRounded";
 
 const FILE_UPLOAD_OPTION = "+ Upload File";
-const RENAME_TRACK_OPTION = "Rename Track";
-const DELETE_TRACK_OPTION = "Delete Track";
+const RENAME_TRACK_OPTION = "Rename Part";
+const DELETE_TRACK_OPTION = "Delete Part";
 
 const options = [FILE_UPLOAD_OPTION, RENAME_TRACK_OPTION, DELETE_TRACK_OPTION];
 
@@ -362,22 +361,22 @@ class Track extends Component {
     return (
       <div style={{ marginLeft: "5px" }}>
         <hr />
-        <div>
-          {this.state.selected ? (
-            <div style={{ display: "inline-block" }}>
-              <img
-                src="images/daw/selected.png"
-                alt="selected"
-                width="10"
-                height="10"
-              />{" "}
-              <b>Track: {this.props.trackName}</b>{" "}
-            </div>
-          ) : (
-            <div style={{ display: "inline-block" }}>
-              Track: {this.props.trackName}{" "}
-            </div>
-          )}
+        <div
+          style={
+            this.state.selected
+              ? {
+                  backgroundColor: "#eee",
+                  padding: "1px 12px",
+                  borderLeft: "4px solid #243aff",
+                  marginBottom: "8px",
+                  fontWeight: "bold",
+                }
+              : { marginBottom: "10px" }
+          }
+        >
+          <div style={{ display: "inline-block" }}>
+            Part: {this.props.trackName}{" "}
+          </div>
           <button
             title="Select/unselect track for recording"
             onClick={this.selectToRecord}

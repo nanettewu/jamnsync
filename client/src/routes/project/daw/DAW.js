@@ -331,7 +331,6 @@ class DAW extends Component {
         />,
         {
           title: "Check Recording",
-          showCloseIcon: true,
           isCanClose: false,
         }
       );
@@ -426,8 +425,16 @@ class DAW extends Component {
     });
   };
 
-  downloadMixedTrack = () => {
+  downloadMixedTrack = async () => {
     console.log("downloading track");
+    const confirm = await Confirm(
+      `This will create a MP3 file containing the latest take from all parts. Are you sure you want to download?`,
+      "Download Mix"
+    );
+    if (!confirm) {
+      return;
+    }
+
     let latestTakeURLs = Object.keys(this.props.trackMetadata)
       .filter((trackId) => {
         const numTakes = Object.keys(this.props.trackMetadata[trackId].takes)
@@ -585,7 +592,7 @@ class DAW extends Component {
                       <input
                         style={{
                           marginLeft: "20px",
-                          marginTop: "25px",
+                          marginTop: "18px",
                           marginBottom: "20px",
                         }}
                         type="file"
@@ -607,7 +614,7 @@ class DAW extends Component {
           className="stitched"
           onClick={this.createTrack}
         >
-          + New Track
+          + New Part
         </button>
         <div style={{ display: "flex" }}>
           <p style={{ marginBottom: "5px" }}>
@@ -676,7 +683,7 @@ class DAW extends Component {
           </p>
         )}
         {/* TODO: Live Monitoring */}
-        <Tooltip title="Record selected track" arrow>
+        <Tooltip title="Record selected part" arrow>
           <span>
             <IconButton
               disableRipple
@@ -695,7 +702,7 @@ class DAW extends Component {
             </IconButton>
           </span>
         </Tooltip>
-        <Tooltip title={this.state.masterPlay ? "Stop all tracks" : ""} arrow>
+        <Tooltip title={this.state.masterPlay ? "Stop all parts" : ""} arrow>
           <span>
             <IconButton
               disableRipple
@@ -707,7 +714,7 @@ class DAW extends Component {
             </IconButton>
           </span>
         </Tooltip>
-        <Tooltip title="Play all tracks" arrow>
+        <Tooltip title="Play all parts" arrow>
           <span>
             <IconButton
               disableRipple
@@ -752,28 +759,12 @@ class DAW extends Component {
             Seek
             <Slider min={0} max={100} defaultValue={0} onChange={this.seek} />
           </div> */}
-          <Tooltip
-            title="Download full track with latest takes"
-            arrow
-            style={{
-              position: "absolute",
-              marginLeft: "380px",
-              marginTop: "-10px",
-            }}
+          <button
+            onClick={this.downloadMixedTrack}
+            style={{ marginLeft: "10px" }}
           >
-            <span>
-              <IconButton
-                disableRipple
-                aria-label="Download full track with latest takes"
-                onClick={this.downloadMixedTrack}
-                style={{
-                  marginBottom: "-10px",
-                }}
-              >
-                <GetAppIcon style={{ fontSize: 30 }} />
-              </IconButton>
-            </span>
-          </Tooltip>
+            Download full mix
+          </button>
         </div>
         {this.state.showCountdown && (
           <div

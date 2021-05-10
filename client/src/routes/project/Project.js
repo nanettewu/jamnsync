@@ -142,7 +142,7 @@ class Project extends Component {
 
   async createTrack() {
     console.log("creating new track");
-    const track_name = await Prompt("Name Your Track");
+    const track_name = await Prompt("Name Your Part");
     if (track_name) {
       const formData = new FormData();
       formData.append("track_name", track_name);
@@ -176,7 +176,7 @@ class Project extends Component {
 
   async renameTrack(id, name) {
     console.log("renaming track");
-    const new_name = await Prompt("Rename Your Track", {
+    const new_name = await Prompt("Rename Your Part", {
       defaultValue: name,
     });
     if (new_name) {
@@ -207,7 +207,7 @@ class Project extends Component {
   async deleteTrack(id, name) {
     const result = await Confirm(
       `Are you sure you want to delete "${name}"?`,
-      "Delete Track"
+      "Delete Part"
     );
     if (result) {
       this.setState({ isDeletingTakeOrTrack: true });
@@ -391,7 +391,7 @@ class Project extends Component {
                     alt="online"
                     width="8"
                     height="8"
-                    style={{ marginLeft: "5px" }}
+                    style={{ marginLeft: "5px", marginTop: "2px" }}
                   />{" "}
                   {user}{" "}
                 </div>
