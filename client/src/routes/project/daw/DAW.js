@@ -336,6 +336,59 @@ class DAW extends Component {
     });
   };
 
+  findNonRecordedTrackURLs = (targetTrackId) => {
+    let nonRecordedTrackURLs;
+    if (this.state.soloTracks.length > 0) {
+      nonRecordedTrackURLs = Object.keys(this.props.trackMetadata)
+        .filter((trackId) => {
+          // only include unmuted tracks that are: 1) not the recorded track and 2) have recordings
+          return (
+            trackId !== targetTrackId &&
+            this.state.soloTracks.includes(trackId) &&
+            !this.state.mutedTracks.includes(trackId) &&
+            Object.keys(this.props.trackMetadata[trackId].takes).length > 0
+          );
+        })
+        .map((trackId) => {
+          // TODO: made executive decision to just pick latest track, but eventually need to fix how take state is stored so DAW Object can access it
+          const takeId = Object.keys(
+            this.props.trackMetadata[trackId].takes
+          ).pop();
+          const audio_url =
+            this.props.trackMetadata[trackId].takes[takeId].s3_info +
+            "?cacheblock=true";
+          console.log("audio url:" + audio_url);
+          return audio_url;
+        });
+    } else {
+      nonRecordedTrackURLs = Object.keys(this.props.trackMetadata)
+        .filter((trackId) => {
+          // only include unmuted tracks that are: 1) not the recorded track and 2) have recordings
+          return (
+            trackId !== targetTrackId &&
+            !this.state.mutedTracks.includes(trackId) &&
+            Object.keys(this.props.trackMetadata[trackId].takes).length > 0
+          );
+        })
+        .map((trackId) => {
+          // TODO: made executive decision to just pick latest track, but eventually need to fix how take state is stored so DAW Object can access it
+          const takeId = Object.keys(
+            this.props.trackMetadata[trackId].takes
+          ).pop();
+          const audio_url =
+            this.props.trackMetadata[trackId].takes[takeId].s3_info +
+            "?cacheblock=true";
+          console.log("audio url:" + audio_url);
+          return audio_url;
+        });
+    }
+    console.log(
+      "# tracks to be stacked for align tool backing track = " +
+        nonRecordedTrackURLs.length
+    );
+    return nonRecordedTrackURLs;
+  };
+
   stopMicrophone = async (blob) => {
     console.log("[RECORDING] stopping microphone");
     let file = new File(
@@ -350,14 +403,19 @@ class DAW extends Component {
       "stopping microphone, sending these muted tracks to alignment tool:",
       this.state.mutedTracks
     );
+    let nonRecordedTrackURLs = this.findNonRecordedTrackURLs(
+      this.state.selectedTrackId
+    );
     // only align track if there is more than 1 track
-    if (numTotalTracks > 1 && this.state.selectedTrackId !== null) {
+    if (
+      numTotalTracks > 1 &&
+      nonRecordedTrackURLs.length > 0 &&
+      this.state.selectedTrackId !== null
+    ) {
       latency = await CustomDialog(
         <AlignRecordingModalContent
           recordedURL={recordedURL}
-          recordedTrackId={this.state.selectedTrackId}
-          trackMetadata={this.props.trackMetadata}
-          mutedTracks={this.state.mutedTracks}
+          backingTrackURLs={nonRecordedTrackURLs}
           hasCountdownLatency={true}
         />,
         {
@@ -586,13 +644,18 @@ class DAW extends Component {
     }
   };
 
-  realignTake = async (trackId, takeURL) => {
+  realignTake = async (realignTrackId, takeURL) => {
+    let nonRecordedTrackURLs = this.findNonRecordedTrackURLs(realignTrackId);
+    if (nonRecordedTrackURLs.length === 0) {
+      alert(
+        "Cannot realign: realign is only supported with 1+ other unmuted tracks."
+      );
+      return;
+    }
     const latency = await CustomDialog(
       <AlignRecordingModalContent
         recordedURL={takeURL}
-        recordedTrackId={trackId}
-        trackMetadata={this.props.trackMetadata}
-        mutedTracks={this.state.mutedTracks}
+        backingTrackURLs={nonRecordedTrackURLs}
         hasCountdownLatency={false}
       />,
       {
@@ -607,9 +670,9 @@ class DAW extends Component {
     }
     let response = await fetch(takeURL);
     let data = await response.blob();
-    let file = new File([data], `recording_track_${trackId}.mp3`);
+    let file = new File([data], `recording_track_${realignTrackId}.mp3`);
     const isManualUpload = true;
-    this.createTake(trackId, file, isManualUpload, latency);
+    this.createTake(realignTrackId, file, isManualUpload, latency);
   };
 
   render() {

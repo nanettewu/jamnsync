@@ -86,33 +86,12 @@ export default function AlignRecordingModalContent(props) {
   useEffect(() => {
     if (bgWaveSurfer && recWaveSurfer && !loadedAudio) {
       const crunker = new Crunker();
-      let nonRecordedTrackURLs = Object.keys(props.trackMetadata)
-        .filter((trackId) => {
-          // only include unmuted tracks that are: 1) not the recorded track and 2) have recordings
-          return (
-            trackId !== props.recordedTrackId &&
-            !props.mutedTracks.includes(trackId) &&
-            Object.keys(props.trackMetadata[trackId].takes).length > 0
-          );
-        })
-        .map((trackId) => {
-          // TODO: made executive decision to just pick latest track, but eventually need to fix how take state is stored so DAW Object can access it
-          const takeId = Object.keys(props.trackMetadata[trackId].takes).pop();
-          const audio_url =
-            props.trackMetadata[trackId].takes[takeId].s3_info +
-            "?cacheblock=true";
-          console.log("audio url:" + audio_url);
-          return audio_url;
-        });
-      console.log(
-        "audio alignment tool: # tracks stacked together = " +
-          nonRecordedTrackURLs.length
-      );
+      let backingTrackURLs = props.backingTrackURLs;
       // only combine audio if necessary
-      if (nonRecordedTrackURLs.length > 1) {
+      if (backingTrackURLs.length > 1) {
         console.log("using crunker to combine recordings");
         crunker
-          .fetchAudio(...nonRecordedTrackURLs)
+          .fetchAudio(...backingTrackURLs)
           .then((buffers) => {
             // => [AudioBuffer, AudioBuffer]
             console.log(buffers);
@@ -136,7 +115,7 @@ export default function AlignRecordingModalContent(props) {
           });
       } else {
         console.log("using single track as backing track");
-        bgWaveSurfer.load(nonRecordedTrackURLs[0]);
+        bgWaveSurfer.load(backingTrackURLs[0]);
         recWaveSurfer.load(props.recordedURL);
 
         bgWaveSurfer.setVolume(0.3);
