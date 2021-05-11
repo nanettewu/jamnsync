@@ -166,7 +166,7 @@ def cancel_request(data):
     if room in prepared_play_by_room and request.sid in prepared_play_by_room[room]:
         prepared_play_by_room[room].remove(request.sid)
         socketio.emit('updateNumPrepared', {'num_prepared':len(prepared_play_by_room[room]), 'num_total':len(all_clients_by_room[room]), 'action': "play"}, to=room )
-    elif room in prepared_play_by_room and request.sid in prepared_play_by_room[room]:
+    elif room in prepared_record_by_room and request.sid in prepared_record_by_room[room]:
         prepared_record_by_room[room].remove(request.sid)
         socketio.emit('updateNumPrepared', {'num_prepared':len(prepared_record_by_room[room]), 'num_total':len(all_clients_by_room[room]), 'action': "record"}, to=room )
     print(f"[SOCKET.IO] cancelling request for {request.sid} in project {room}")

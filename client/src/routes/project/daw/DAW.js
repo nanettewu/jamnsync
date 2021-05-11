@@ -45,6 +45,7 @@ class DAW extends Component {
       numGroupMembersPrepared: 1,
       numGroupMembersTotal: 1,
       preparedGroupAction: null,
+      withGroup: false,
     };
     this.audioContext = null;
     this.gumStream = null;
@@ -62,6 +63,7 @@ class DAW extends Component {
     this.setState({
       requestingGroupPlayback: false,
       preparedGroupAction: null,
+      withGroup: true,
     });
   };
 
@@ -70,7 +72,7 @@ class DAW extends Component {
       "[SOCKET.IO] receiving begin group stop for " + this.props.projectName
     );
     if (!this.state.receivedImmediateStop) {
-      this.setState({ receivedImmediateStop: true });
+      this.setState({ receivedImmediateStop: true, withGroup: false });
       this.toggleMasterStop();
       const username = JSON.parse(localStorage.getItem("userDetails")).name;
       if (typeof data.stopped_by === "string" && data.stopped_by !== username) {
@@ -82,16 +84,29 @@ class DAW extends Component {
   beginGroupRecordListener = () => {
     console.log("[SOCKET.IO] receiving begin group record");
     this.toggleMasterRecord();
-    this.setState({ requestingGroupRecord: false, preparedGroupAction: null });
+    this.setState({
+      requestingGroupRecord: false,
+      preparedGroupAction: null,
+      withGroup: true,
+    });
   };
 
   updateNumPreparedListener = (data) => {
-    console.log("[SOCKET.IO] updating number of prepared group members");
-    this.setState({
-      numGroupMembersPrepared: data.num_prepared,
-      numGroupMembersTotal: data.num_total,
-      preparedGroupAction: data.action,
-    });
+    console.log("[SOCKET.IO] updating number of prepared group members", data);
+    if (data.num_prepared === 0) {
+      // reset all group state
+      this.setState({
+        numGroupMembersPrepared: data.num_prepared,
+        numGroupMembersTotal: data.num_total,
+        preparedGroupAction: null,
+      });
+    } else {
+      this.setState({
+        numGroupMembersPrepared: data.num_prepared,
+        numGroupMembersTotal: data.num_total,
+        preparedGroupAction: data.action,
+      });
+    }
   };
 
   notifyWaitingGroupMember = async (data) => {
@@ -101,6 +116,13 @@ class DAW extends Component {
         " to request " +
         data.action
     );
+    if (
+      (data.action === "play" && this.state.requestingGroupPlayback) ||
+      (data.action === "record" && this.state.requestingGroupRecord)
+    ) {
+      console.log("[SOCKET.IO] no need to notify me, already ready to go");
+      return;
+    }
     const readyToJoin = await Confirm(
       `${data.requester} wants to group ${data.action}. Ready to join?`,
       "Incoming Request",
@@ -230,6 +252,11 @@ class DAW extends Component {
     console.log("> master stop");
     clearInterval(this.timer);
     if (!this.state.masterPlay) {
+      this.setState({
+        masterStop: true,
+        runningTime: 0,
+        receivedImmediateStop: false,
+      });
       return;
     }
     if (!this.state.isRecording) {
@@ -319,11 +346,10 @@ class DAW extends Component {
     let latency = 0; // in ms
     this.setState({ stopMicProcessing: false });
     const numTotalTracks = Object.keys(this.props.trackMetadata).length;
-    // const mutedTracks = this.state.mutedTracks.length;
-    // console.log(
-    //   "stopping microphone, sending these muted tracks to alignment tool:",
-    //   this.state.mutedTracks
-    // );
+    console.log(
+      "stopping microphone, sending these muted tracks to alignment tool:",
+      this.state.mutedTracks
+    );
     // only align track if there is more than 1 track
     if (numTotalTracks > 1 && this.state.selectedTrackId !== null) {
       latency = await CustomDialog(
@@ -654,12 +680,13 @@ class DAW extends Component {
           </p>
           {otherMembersOnline && (
             <button
-              style={{ marginLeft: "12px" }}
+              style={{ marginLeft: "12px", height: "35px", marginTop: "8px" }}
               onClick={this.requestGroupRecord}
               disabled={
                 this.state.masterPlay ||
                 this.state.requestingGroupRecord ||
-                this.state.requestingGroupPlayback
+                this.state.requestingGroupPlayback ||
+                this.state.preparedGroupAction === "play"
               }
             >
               {this.state.requestingGroupRecord ? "waiting..." : "group record"}
@@ -669,6 +696,7 @@ class DAW extends Component {
             <button
               onClick={this.requestGroupStop}
               disabled={!this.state.masterPlay}
+              style={{ height: "35px", marginTop: "8px" }}
             >
               group stop
             </button>
@@ -679,8 +707,10 @@ class DAW extends Component {
               disabled={
                 this.state.masterPlay ||
                 this.state.requestingGroupPlayback ||
-                this.state.requestingGroupRecord
+                this.state.requestingGroupRecord ||
+                this.state.preparedGroupAction === "record"
               }
+              style={{ height: "35px", marginTop: "8px" }}
             >
               {this.state.requestingGroupPlayback ? "waiting..." : "group play"}
             </button>
@@ -692,6 +722,7 @@ class DAW extends Component {
                 !this.state.requestingGroupRecord &&
                 !this.state.requestingGroupPlayback
               }
+              style={{ height: "35px", marginTop: "8px" }}
             >
               cancel request
             </button>
@@ -721,7 +752,11 @@ class DAW extends Component {
               disableRipple
               aria-label="Record"
               onClick={this.toggleMasterRecord}
-              disabled={this.state.masterPlay || this.state.isBlocked}
+              disabled={
+                this.state.masterPlay ||
+                this.state.isBlocked ||
+                this.state.withGroup
+              }
             >
               {this.state.masterPlay || this.state.isBlocked ? (
                 <FiberManualRecordRoundedIcon style={{ fontSize: 28 }} />
@@ -740,7 +775,7 @@ class DAW extends Component {
               disableRipple
               aria-label="Stop"
               onClick={this.toggleMasterStop}
-              disabled={!this.state.masterPlay}
+              disabled={!this.state.masterPlay || this.state.withGroup}
             >
               <StopRoundedIcon style={{ fontSize: 35 }} />
             </IconButton>
@@ -754,7 +789,8 @@ class DAW extends Component {
               onClick={this.toggleMasterPlay}
               disabled={
                 this.state.masterPlay ||
-                Object.keys(this.props.trackMetadata).length === 0
+                Object.keys(this.props.trackMetadata).length === 0 ||
+                this.state.withGroup
               }
               style={{ marginLeft: "-5px" }}
             >
