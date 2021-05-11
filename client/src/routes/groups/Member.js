@@ -8,11 +8,16 @@ class Member extends Component {
   render() {
     const hideRemoveButton = !this.props.onlyMemberInGroup;
     return (
-      <div>
+      <div style={{ marginTop: "10px" }}>
         <li>
           Member: {this.props.name}{" "}
           {hideRemoveButton && (
-            <button onClick={this.removeMember}>Remove</button>
+            <button
+              onClick={this.removeMember}
+              style={{ marginLeft: "5px", cursor: "pointer" }}
+            >
+              Remove
+            </button>
           )}
         </li>
       </div>

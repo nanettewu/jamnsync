@@ -12,6 +12,8 @@ import MenuItem from "@material-ui/core/MenuItem";
 import MoreHorizIcon from "@material-ui/icons/MoreHoriz";
 import HeadsetRoundedIcon from "@material-ui/icons/HeadsetRounded";
 import VolumeOffRoundedIcon from "@material-ui/icons/VolumeOffRounded";
+import GetAppRoundedIcon from "@material-ui/icons/GetAppRounded";
+import DeleteRoundedIcon from "@material-ui/icons/DeleteRounded";
 
 const FILE_UPLOAD_OPTION = "+ Upload File";
 const RENAME_TRACK_OPTION = "Rename Part";
@@ -367,11 +369,11 @@ class Track extends Component {
               ? {
                   backgroundColor: "#eee",
                   padding: "1px 12px",
-                  borderLeft: "4px solid #243aff",
-                  marginBottom: "8px",
+                  borderLeft: "4px solid #2153c9",
+                  marginBottom: "15px",
                   fontWeight: "bold",
                 }
-              : { marginBottom: "10px" }
+              : { marginBottom: "17px" }
           }
         >
           <div style={{ display: "inline-block" }}>
@@ -380,7 +382,7 @@ class Track extends Component {
           <button
             title="Select/unselect track for recording"
             onClick={this.selectToRecord}
-            style={{ marginLeft: "5px" }}
+            style={{ marginLeft: "10px", height: "25px", cursor: "pointer" }}
           >
             {buttonSelectText}
           </button>
@@ -389,7 +391,7 @@ class Track extends Component {
             aria-controls="track-menu"
             aria-haspopup="true"
             onClick={this.clickThreeDotsMenu}
-            style={{ marginLeft: "5px" }}
+            style={{ marginLeft: "2px" }}
           >
             <MoreHorizIcon />
           </IconButton>
@@ -422,50 +424,53 @@ class Track extends Component {
           </Menu>
         </div>
         {this.state.s3URL && Object.keys(this.props.takes).length > 0 && (
-          <div style={{ marginBottom: "18px", marginTop: "-12px" }}>
-            <Tooltip title="Mute" arrow>
-              <IconButton
-                disableRipple
-                aria-label="Mute this track"
-                onClick={this.mute}
-                style={{ marginTop: "5px" }}
-              >
-                {this.state.muted ? (
-                  <VolumeOffRoundedIcon
-                    style={{ fontSize: 20 }}
-                    color="secondary"
-                  />
-                ) : (
-                  <VolumeOffRoundedIcon style={{ fontSize: 20 }} />
-                )}
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Solo" arrow>
-              <IconButton
-                disableRipple
-                aria-label="Solo this track"
-                onClick={this.solo}
-                style={{ marginTop: "5px" }}
-              >
-                {this.state.soloing ? (
-                  <HeadsetRoundedIcon
-                    style={{ fontSize: 20 }}
-                    color="secondary"
-                  />
-                ) : (
-                  <HeadsetRoundedIcon style={{ fontSize: 20 }} />
-                )}
-              </IconButton>
-            </Tooltip>
+          <div
+            style={{
+              display: "flex",
+              marginBottom: "10px",
+            }}
+          >
+            <div style={{ marginTop: "-13px" }}>
+              <Tooltip title="Solo" arrow>
+                <IconButton
+                  disableRipple
+                  aria-label="Solo this track"
+                  onClick={this.solo}
+                >
+                  {this.state.soloing ? (
+                    <HeadsetRoundedIcon
+                      style={{ fontSize: 20 }}
+                      color="secondary"
+                    />
+                  ) : (
+                    <HeadsetRoundedIcon style={{ fontSize: 20 }} />
+                  )}
+                </IconButton>
+              </Tooltip>
+            </div>
+            <div style={{ marginTop: "-14px" }}>
+              <Tooltip title="Mute" arrow>
+                <IconButton
+                  disableRipple
+                  aria-label="Mute this track"
+                  onClick={this.mute}
+                >
+                  {this.state.muted ? (
+                    <VolumeOffRoundedIcon
+                      style={{ fontSize: 20 }}
+                      color="secondary"
+                    />
+                  ) : (
+                    <VolumeOffRoundedIcon style={{ fontSize: 20 }} />
+                  )}
+                </IconButton>
+              </Tooltip>
+            </div>
             <div
               style={{
-                display: "inline-block",
-                marginLeft: "10px",
-                marginRight: "10px",
                 width: "55px",
               }}
             >
-              Volume
               <Slider
                 min={0}
                 max={100}
@@ -483,11 +488,9 @@ class Track extends Component {
 
             <div
               style={{
-                marginLeft: "20px",
-                marginTop: "10px",
-                display: "inline-flex",
-                position: "absolute",
-                width: 310,
+                flex: "0 1 300px",
+                marginLeft: "25px",
+                marginTop: "-8px",
               }}
             >
               <Dropdown
@@ -499,21 +502,34 @@ class Track extends Component {
             </div>
             <div
               style={{
-                display: "inline-flex",
-                position: "absolute",
-                marginLeft: "330px",
-                marginTop: "15px",
+                flex: "0 0 20px",
+                marginLeft: "10px",
+                marginTop: "-14px",
               }}
             >
               <form method="get" action={`${this.state.s3URL}?cacheblock=true`}>
-                <button type="submit">Download Take</button>
+                <Tooltip title="Download take" arrow>
+                  <IconButton
+                    disableRipple
+                    aria-label="Download this take"
+                    type="submit"
+                  >
+                    <GetAppRoundedIcon style={{ fontSize: 23 }} />
+                  </IconButton>
+                </Tooltip>
               </form>
-              <button
-                disabled={this.props.masterPlay}
-                onClick={this.deleteTake}
-              >
-                Delete Take
-              </button>
+            </div>
+            <div style={{ marginTop: "-15px" }}>
+              <Tooltip title="Delete take" arrow>
+                <IconButton
+                  disableRipple
+                  aria-label="Delete this take"
+                  onClick={this.deleteTake}
+                  disabled={this.props.masterPlay}
+                >
+                  <DeleteRoundedIcon style={{ fontSize: 22 }} />
+                </IconButton>
+              </Tooltip>
             </div>
           </div>
         )}

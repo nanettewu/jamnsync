@@ -9,7 +9,6 @@ import Slider from "rc-slider";
 import "rc-slider/assets/index.css";
 
 import IconButton from "@material-ui/core/IconButton";
-import GetAppIcon from "@material-ui/icons/GetApp";
 import PlayArrowRoundedIcon from "@material-ui/icons/PlayArrowRounded";
 import StopRoundedIcon from "@material-ui/icons/StopRounded";
 import FiberManualRecordRoundedIcon from "@material-ui/icons/FiberManualRecordRounded";
@@ -53,7 +52,6 @@ class DAW extends Component {
     this.recorder = null;
     this.toggleMasterRecord = this.toggleMasterRecord.bind(this);
     this.toggleMasterStop = this.toggleMasterStop.bind(this);
-    this.stopMicrophone = this.stopMicrophone.bind(this);
   }
 
   // SOCKET IO LISTENERS:
@@ -246,6 +244,7 @@ class DAW extends Component {
         runningTime: 0,
         stopMicProcessing: true,
         receivedImmediateStop: false,
+        isRecording: false,
       });
       //stop microphone access
       this.gumStream.getAudioTracks()[0].stop();
@@ -263,9 +262,7 @@ class DAW extends Component {
       this.startMicrophone();
       this.setState((state) => {
         return {
-          masterRecord: true,
           showCountdown: true,
-          isRecording: true,
         };
       });
     }
@@ -296,6 +293,13 @@ class DAW extends Component {
       });
 
       this.recorder.onComplete = async (recorder, blob) => {
+        if (!this.state.masterRecord) {
+          console.log(
+            "[RECORDING] alignment tool is trying to pop up but shouldn't:",
+            this.state
+          );
+          return;
+        }
         console.log("[RECORDING] encoding complete");
         this.gumStream.getAudioTracks()[0].stop();
         await this.stopMicrophone(blob);
@@ -305,7 +309,7 @@ class DAW extends Component {
     });
   };
 
-  async stopMicrophone(blob) {
+  stopMicrophone = async (blob) => {
     console.log("[RECORDING] stopping microphone");
     let file = new File(
       [blob],
@@ -321,7 +325,7 @@ class DAW extends Component {
     //   this.state.mutedTracks
     // );
     // only align track if there is more than 1 track
-    if (numTotalTracks > 1) {
+    if (numTotalTracks > 1 && this.state.selectedTrackId !== null) {
       latency = await CustomDialog(
         <AlignRecordingModalContent
           recordedURL={recordedURL}
@@ -332,6 +336,7 @@ class DAW extends Component {
         {
           title: "Check Recording",
           isCanClose: false,
+          // showCloseIcon: true,
         }
       );
       // delete recording instead
@@ -349,7 +354,7 @@ class DAW extends Component {
       isRecording: false,
       masterRecord: false,
     });
-  }
+  };
 
   handleFileUpload = (files, targetId) => {
     console.log("handling file upload for target track id", targetId);
@@ -557,7 +562,7 @@ class DAW extends Component {
   render() {
     const otherMembersOnline = this.props.numOnlineUsers > 1;
     return (
-      <div>
+      <div style={{ marginBottom: "10px" }}>
         <div>
           {this.props.trackMetadata &&
           Object.keys(this.props.trackMetadata).length > 0 ? (
@@ -588,12 +593,11 @@ class DAW extends Component {
                   </div>
                   {Object.keys(this.props.trackMetadata[trackId].takes)
                     .length === 0 && (
-                    <div style={{ marginTop: "-20px" }}>
+                    <div style={{ marginTop: "-8px" }}>
                       <input
                         style={{
                           marginLeft: "20px",
-                          marginTop: "18px",
-                          marginBottom: "20px",
+                          marginBottom: "10px",
                         }}
                         type="file"
                         onChange={(e) =>
@@ -622,7 +626,7 @@ class DAW extends Component {
           </p>
           {otherMembersOnline && (
             <button
-              style={{ marginLeft: "10px" }}
+              style={{ marginLeft: "12px" }}
               onClick={this.requestGroupRecord}
               disabled={
                 this.state.masterPlay ||
@@ -726,15 +730,36 @@ class DAW extends Component {
               }
               style={{ marginLeft: "-5px" }}
             >
-              <PlayArrowRoundedIcon style={{ fontSize: 35 }} />
+              {this.state.masterPlay ||
+              Object.keys(this.props.trackMetadata).length === 0 ? (
+                <PlayArrowRoundedIcon style={{ fontSize: 35 }} />
+              ) : (
+                <PlayArrowRoundedIcon
+                  color="primary"
+                  style={{ fontSize: 35, color: "#54ae1c" }}
+                />
+              )}
             </IconButton>
           </span>
         </Tooltip>{" "}
         <div style={{ display: "flex", marginTop: "-45px" }}>
+          <div style={{ marginLeft: "170px", marginTop: "5px" }}>
+            {this.state.isRecording ? (
+              <span style={{ color: "#F60457" }}>
+                <b>{this.formattedTime(this.state.runningTime)}</b>
+              </span>
+            ) : this.state.masterPlay || this.state.showCountdown ? (
+              <span>
+                <b>{this.formattedTime(this.state.runningTime)}</b>
+              </span>
+            ) : (
+              <span>{this.formattedTime(this.state.runningTime)}</span>
+            )}
+          </div>
           <div
             style={{
-              position: "relative",
-              marginLeft: "175px",
+              position: "absolute",
+              marginLeft: "250px",
               width: "100px",
             }}
           >
@@ -746,9 +771,7 @@ class DAW extends Component {
               onChange={this.changeVolume}
             />
           </div>
-          <span style={{ marginLeft: "30px", marginTop: "5px" }}>
-            {this.formattedTime(this.state.runningTime)}
-          </span>
+
           {/* <div
             style={{
               position: "absolute",
@@ -761,7 +784,7 @@ class DAW extends Component {
           </div> */}
           <button
             onClick={this.downloadMixedTrack}
-            style={{ marginLeft: "10px" }}
+            className="download-full-mix"
           >
             Download full mix
           </button>
@@ -771,8 +794,8 @@ class DAW extends Component {
             className="timer"
             style={{
               position: "absolute",
-              marginLeft: "500px",
-              marginTop: "-105px",
+              marginLeft: "525px",
+              marginTop: "-100px",
             }}
           >
             <CountdownCircleTimer
@@ -785,7 +808,12 @@ class DAW extends Component {
                 this.timer = setInterval(() => {
                   this.setState({ runningTime: Date.now() - startTime });
                 });
-                this.setState({ showCountdown: false, masterPlay: true });
+                this.setState({
+                  showCountdown: false,
+                  masterPlay: true,
+                  masterRecord: true,
+                  isRecording: true,
+                });
               }}
             >
               {({ remainingTime }) => remainingTime}
@@ -794,6 +822,7 @@ class DAW extends Component {
               onClick={() => {
                 this.setState({
                   showCountdown: false,
+                  isRecording: false,
                 });
                 this.toggleMasterStop();
               }}

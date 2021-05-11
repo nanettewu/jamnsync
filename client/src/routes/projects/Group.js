@@ -142,18 +142,25 @@ class Group extends Component {
       a.id > b.id ? 1 : -1
     );
     return (
-      <div style={{ marginTop: "25px", marginBottom: "-10px" }}>
+      <div
+        style={{ marginTop: "25px", marginBottom: "-15px", marginLeft: "2px" }}
+      >
         <p>
-          Group: {this.props.name}
+          <b>Group: {this.props.name}</b>
           {"  "}
-          <button onClick={this.createNewProject}>+ Project</button>
+          <button
+            onClick={this.createNewProject}
+            style={{ marginLeft: "5px", height: "25px", cursor: "pointer" }}
+          >
+            + Project
+          </button>
         </p>
         <div style={{ marginTop: "20px" }}>
           <ul>
             {this.state.projects && this.state.projects.length === 0 && (
               <p
                 className="text-muted"
-                style={{ marginTop: "-10px", marginBottom: "20px" }}
+                style={{ marginTop: "-10px", marginBottom: "35px" }}
               >
                 No projects created yet!
               </p>

@@ -4,7 +4,7 @@ class Home extends Component {
   render() {
     return (
       <div>
-        <h2>HOMEPAGE</h2>
+        <h2>HOME PAGE</h2>
         {!this.props.authed ? (
           <p>Login to get started! 🎶</p>
         ) : (

@@ -281,9 +281,9 @@ class Project extends Component {
         }
       })
       .catch((error) => {
+        this.setState({ isCreatingTake: false });
         alert("Could not upload take due to server error (see console).");
         console.log(error);
-        this.setState({ isCreatingTake: false });
       });
   }
 
@@ -375,8 +375,8 @@ class Project extends Component {
           <div
             style={{
               marginLeft: "-5px",
-              marginTop: "10px",
-              marginBottom: "-10px",
+              marginTop: "12px",
+              marginBottom: "-12px",
               fontSize: "12px",
             }}
           >

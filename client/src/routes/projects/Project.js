@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import "./Project.css";
 import { useHistory } from "react-router-dom";
 
 import IconButton from "@material-ui/core/IconButton";
@@ -40,15 +41,16 @@ function Project(props) {
   };
 
   return (
-    <li>
+    <li style={{ marginBottom: "12px" }}>
       Project: {props.project.project_name}{" "}
-      <button onClick={rehearse}>Rehearse!</button>
+      <button onClick={rehearse} className="rehearse">
+        Rehearse! »
+      </button>
       <IconButton
         aria-label="more"
         aria-controls="project-menu"
         aria-haspopup="true"
         onClick={clickThreeDotsMenu}
-        style={{ marginLeft: "5px" }}
       >
         <MoreHorizIcon />
       </IconButton>

@@ -160,17 +160,28 @@ class Group extends Component {
 
   render() {
     return (
-      <div style={{ marginBottom: "-10px" }}>
-        <p style={{ marginTop: "20px", marginBottom: "-20px" }}>
-          Group: {this.props.name}
+      <div style={{ marginBottom: "-15px" }}>
+        <p
+          style={{
+            marginTop: "25px",
+            marginBottom: "-15px",
+            marginLeft: "2px",
+          }}
+        >
+          <b>Group: {this.props.name}</b>
           {"  "}
-          <button onClick={this.addMember}>+ Member</button>
+          <button
+            onClick={this.addMember}
+            style={{ marginLeft: "5px", height: "25px", cursor: "pointer" }}
+          >
+            + Member
+          </button>
           <IconButton
             aria-label="more"
             aria-controls="group-menu"
             aria-haspopup="true"
             onClick={this.clickThreeDotsMenu}
-            style={{ marginLeft: "5px" }}
+            style={{ marginLeft: "2px" }}
           >
             <MoreHorizIcon />
           </IconButton>

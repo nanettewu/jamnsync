@@ -15,7 +15,7 @@ ul.header li {
   margin: 0;
 }
 ul.header {
-  background-color: #111;
+  background-color: #030b16;
   padding: 0;
 }
 ul.header li a {
@@ -38,7 +38,7 @@ ul.header li a {
 }
 
 .active {
-  background-color: #0099ff;
+  background-color: #3481fa;
 }
 
 .footer {

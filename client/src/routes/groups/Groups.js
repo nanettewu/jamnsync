@@ -182,7 +182,7 @@ class Groups extends Component {
     }
     return (
       <div>
-        <h2 style={{ marginBottom: "-30px" }}>
+        <h2 style={{ marginBottom: "-35px" }}>
           REHEARSAL GROUPS
           <Tooltip title="Refresh latest groups" arrow placement="right">
             <IconButton
