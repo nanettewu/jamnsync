@@ -2,28 +2,26 @@
   position: relative;
 }
 
-.cursor {
-  height: 500px;
-  margin-top: 6px;
-  margin-left: 292px;
+.ruler {
+  height: 425px;
+  margin-top: 118px;
+  margin-left: 300px;
+  border: 1px solid rgb(198, 197, 197);
+  border-radius: 2px;
+  width: 1.5em;
   position: absolute;
   z-index: 10;
+  cursor: grab;
+  background: lightyellow;
+  border-left: 2px solid rgb(101, 100, 100);
+  box-shadow: 0 -1px 1em hsl(60, 60%, 84%) inset;
+  opacity: 0.4;
 }
 
-.startLine {
-  margin-top: 80px;
-  margin-left: 8px;
-  height: 470px;
-  border-left: 2px solid #b3bde4;
+.backingTrack {
+  cursor: not-allowed;
 }
 
-.point {
-  margin-top: 75px;
-  /* margin-left: -1px; */
-  border-radius: 2px;
-  border-top: 10px solid transparent;
-  border-bottom: 10px solid transparent;
-  border-left: 18px solid #b3bde4;
-  float: right;
-  transform: rotate(90deg);
+.recordedTrack {
+  cursor: ew-resize;
 }

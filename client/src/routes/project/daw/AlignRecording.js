@@ -12,6 +12,11 @@ import WaveSurfer from "wavesurfer.js";
 import Draggable from "react-draggable";
 import Crunker from "crunker"; // https://github.com/jackedgson/crunker
 
+import VolumeMuteRoundedIcon from "@material-ui/icons/VolumeMuteRounded";
+import VolumeDownRoundedIcon from "@material-ui/icons/VolumeUpRounded";
+import Slider from "rc-slider";
+import "rc-slider/assets/index.css";
+
 export default function AlignRecordingModalContent(props) {
   const dialog = useDialog();
 
@@ -21,7 +26,7 @@ export default function AlignRecordingModalContent(props) {
   const [bgWaveSurfer, setBgWaveSurfer] = useState(null);
   const [recWaveSurfer, setRecWaveSurfer] = useState(null);
   const [loadedAudio, setLoadedAudio] = useState(false);
-  const [mixedBackingTrackURL, setMixedBackingTrackURL] = useState(null);
+  // const [mixedBackingTrackURL, setMixedBackingTrackURL] = useState(null);
 
   const [dragOffset, setDragOffset] = useState(0);
   const [latencyMagnitude, setLatencyMagnitude] = useState(0);
@@ -33,6 +38,14 @@ export default function AlignRecordingModalContent(props) {
     setDragOffset(position.x);
     setLatencyMagnitude(latency);
   }, []);
+
+  const bgChangeVolume = (value) => {
+    bgWaveSurfer.setVolume(value / 100);
+  };
+
+  const recChangeVolume = (value) => {
+    recWaveSurfer.setVolume(value / 100);
+  };
 
   useEffect(() => {
     setBgWaveSurfer(
@@ -102,6 +115,7 @@ export default function AlignRecordingModalContent(props) {
           .fetchAudio(...nonRecordedTrackURLs)
           .then((buffers) => {
             // => [AudioBuffer, AudioBuffer]
+            console.log(buffers);
             return crunker.mergeAudio(buffers);
           })
           .then((merged) => {
@@ -110,7 +124,6 @@ export default function AlignRecordingModalContent(props) {
           })
           .then((output) => {
             // => {blob, element, url}
-            setMixedBackingTrackURL(output.url);
             bgWaveSurfer.load(output.url);
             recWaveSurfer.load(props.recordedURL);
 
@@ -123,47 +136,116 @@ export default function AlignRecordingModalContent(props) {
           });
       } else {
         console.log("using single track as backing track");
-        setMixedBackingTrackURL(nonRecordedTrackURLs[0]);
         bgWaveSurfer.load(nonRecordedTrackURLs[0]);
         recWaveSurfer.load(props.recordedURL);
 
-        bgWaveSurfer.setVolume(0.3); // TODO
-        recWaveSurfer.setVolume(0.3);
+        bgWaveSurfer.setVolume(0.3);
+        recWaveSurfer.setVolume(0.4);
 
         bgWaveSurfer.zoom(80);
         recWaveSurfer.zoom(80);
         setLoadedAudio(true);
       }
     }
-  }, [bgWaveSurfer, recWaveSurfer, loadedAudio, props]); // TODO check
+  }, [bgWaveSurfer, recWaveSurfer, loadedAudio, props]);
 
   return (
     <div className="outerDiv">
       <div>
-        <Draggable axis="x" bounds={{ left: -285, right: 285 }}>
-          <div className="cursor">
-            <div className="point" />
-            <div className="startLine" />
-          </div>
-        </Draggable>
+        {loadedAudio && (
+          <Draggable axis="x" bounds={{ left: -285, right: 285 }}>
+            <div className="ruler"></div>
+          </Draggable>
+        )}
         <ModalContent>
           {!loadedAudio ? (
-            <LoadingGif text={"Preparing alignment tool..."} />
+            <div style={{ marginBottom: "10px" }}>
+              <LoadingGif text={"Preparing alignment tool..."} />
+            </div>
           ) : (
             <p>
-              Drag your recording left/right to align it, and move the cursor
-              like a ruler to align peaks!
+              Recordings in the browser are sometimes delayed. Click "play" to
+              check for delays, and drag your recording left/right to align it
+              with the backing tracks. Move the ruler to help you find and align
+              peaks between tracks!
             </p>
           )}
-          <p>
+          <div style={{ marginBottom: "5px" }}>
             <b>Backing Tracks</b>
-          </p>
-          <div id="bg_waveform"></div>
-          <p>
+            {loadedAudio && bgWaveSurfer && (
+              <div style={{ display: "flex" }}>
+                <VolumeMuteRoundedIcon
+                  style={{
+                    fontSize: 20,
+                    marginLeft: "125px",
+                    marginTop: "-18px",
+                  }}
+                  color="action"
+                />
+                <div
+                  style={{
+                    width: "55px",
+                    marginLeft: "5px",
+                    marginTop: "-15px",
+                  }}
+                >
+                  <Slider
+                    min={0}
+                    max={100}
+                    defaultValue={30}
+                    onChange={bgChangeVolume}
+                  />
+                </div>
+                <VolumeDownRoundedIcon
+                  style={{
+                    fontSize: 20,
+                    marginLeft: "12px",
+                    marginTop: "-18px",
+                  }}
+                  color="action"
+                />
+              </div>
+            )}
+          </div>
+          <div id="bg_timeline"></div>
+          <div className="backingTrack" id="bg_waveform"></div>
+          <div style={{ marginBottom: "5px" }}>
             <b>Recording</b>
-          </p>
+            {loadedAudio && recWaveSurfer && (
+              <div style={{ display: "flex" }}>
+                <VolumeMuteRoundedIcon
+                  style={{
+                    fontSize: 20,
+                    marginLeft: "87px",
+                    marginTop: "-18px",
+                  }}
+                  color="action"
+                />
+                <div style={{ width: "55px", marginTop: "-15px" }}>
+                  <Slider
+                    min={0}
+                    max={100}
+                    defaultValue={40}
+                    onChange={recChangeVolume}
+                  />
+                </div>
+                <VolumeDownRoundedIcon
+                  style={{
+                    fontSize: 20,
+                    marginLeft: "10px",
+                    marginTop: "-18px",
+                  }}
+                  color="action"
+                />
+              </div>
+            )}
+          </div>
           <Draggable axis="x" onStop={onStopDrag}>
-            <div id="rec_waveform" style={{ marginLeft: "-240px" }}></div>
+            <div
+              className="recordedTrack"
+              id="rec_waveform"
+              style={props.hasCountdownLatency ? { marginLeft: "-240px" } : {}}
+            />
           </Draggable>
         </ModalContent>
         <ModalFooter>
@@ -197,17 +279,21 @@ export default function AlignRecordingModalContent(props) {
               recWaveSurfer.stop();
               clearTimeout(playbackTimer);
               const result = await Confirm(
-                `Are you sure you want to scrap this recording?`,
-                "Scrap Recording"
+                `Are you sure you want to scrap?`,
+                props.hasCountdownLatency
+                  ? `Scrap Recording`
+                  : "Scrap Realignment"
               );
               if (result) {
-                console.log("scrapping recording");
+                console.log("scrapping recording/realignment");
                 dialog.close("scrap");
               }
             }}
             type={"danger"}
           >
-            Scrap Recording
+            {props.hasCountdownLatency
+              ? "Scrap Recording"
+              : "Scrap Realignment"}
           </ModalButton>
           <ModalButton
             onClick={() => {
@@ -223,7 +309,11 @@ export default function AlignRecordingModalContent(props) {
                 recWaveSurfer.params.scrollParent = false;
 
                 bgWaveSurfer.seekTo(0);
-                recWaveSurfer.seekAndCenter(3 / recWaveSurfer.getDuration());
+                if (props.hasCountdownLatency) {
+                  recWaveSurfer.seekAndCenter(3 / recWaveSurfer.getDuration());
+                } else {
+                  recWaveSurfer.seekTo(0);
+                }
 
                 if (dragOffset > 0) {
                   console.log("[recorded early]: user wants to playback later");
@@ -236,7 +326,11 @@ export default function AlignRecordingModalContent(props) {
                   bgWaveSurfer.play(null, 7);
                   setDelayPlaybackTimer(
                     setTimeout(() => {
-                      recWaveSurfer.play(3, 10 - latencyMagnitude / 1000);
+                      if (props.hasCountdownLatency) {
+                        recWaveSurfer.play(3, 10 - latencyMagnitude / 1000);
+                      } else {
+                        recWaveSurfer.play(0, 7 - latencyMagnitude / 1000);
+                      }
                     }, latencyMagnitude)
                   );
                 } else if (dragOffset < 0) {
@@ -251,7 +345,11 @@ export default function AlignRecordingModalContent(props) {
                     }, 7000)
                   );
                   bgWaveSurfer.play(null, 7);
-                  recWaveSurfer.play(3 + latency / 1000, 10 + latency / 1000);
+                  if (props.hasCountdownLatency) {
+                    recWaveSurfer.play(3 + latency / 1000, 10 + latency / 1000);
+                  } else {
+                    recWaveSurfer.play(latency / 1000, 7 + latency / 1000);
+                  }
                 } else {
                   setPlaybackTimer(
                     setTimeout(() => {
@@ -259,7 +357,11 @@ export default function AlignRecordingModalContent(props) {
                     }, 7000)
                   );
                   bgWaveSurfer.play(null, 7);
-                  recWaveSurfer.play(3, 10);
+                  if (props.hasCountdownLatency) {
+                    recWaveSurfer.play(3, 10);
+                  } else {
+                    recWaveSurfer.play(null, 7);
+                  }
                 }
               }
               setPlaying(!isPlaying);

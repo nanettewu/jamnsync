@@ -15,11 +15,17 @@ import VolumeOffRoundedIcon from "@material-ui/icons/VolumeOffRounded";
 import GetAppRoundedIcon from "@material-ui/icons/GetAppRounded";
 import DeleteRoundedIcon from "@material-ui/icons/DeleteRounded";
 
-const FILE_UPLOAD_OPTION = "+ Upload File";
+const REALIGN_OPTION = "Realign Take";
 const RENAME_TRACK_OPTION = "Rename Part";
 const DELETE_TRACK_OPTION = "Delete Part";
+const FILE_UPLOAD_OPTION = "+ Upload File";
 
-const options = [FILE_UPLOAD_OPTION, RENAME_TRACK_OPTION, DELETE_TRACK_OPTION];
+const options = [
+  REALIGN_OPTION,
+  DELETE_TRACK_OPTION,
+  RENAME_TRACK_OPTION,
+  FILE_UPLOAD_OPTION,
+];
 
 class Track extends Component {
   constructor(props) {
@@ -332,6 +338,8 @@ class Track extends Component {
       this.props.renameTrack(this.props.trackId, this.props.trackName);
     } else if (option === DELETE_TRACK_OPTION) {
       this.props.deleteTrack(this.props.trackId, this.props.trackName);
+    } else if (option === REALIGN_OPTION) {
+      this.props.realignTake(this.props.trackId, this.state.s3URL);
     }
     this.setState({ threeDotsAnchorElement: null });
   };

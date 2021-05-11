@@ -555,13 +555,16 @@ def create_take():
         os.remove(filepath) # don't save file
         return f"file exceeds {NUM_MEGABYTES}B", HTTPStatus.REQUEST_ENTITY_TOO_LARGE
 
-    # TODO: adds buffer to audio track if not a backing track
     extension = filepath.rsplit('.')[1]
     print(f"fixing audio trimming for path: {filepath} with extension '{extension}'")
     song = AudioSegment.from_file(filepath, extension)
+    print(f"old frame rate was {song.frame_rate}, changing to 44100 kHz")
+    if song.frame_rate != 44100: # TODO: maybe 48000 instead?
+        song = song.set_frame_rate(44100)
+
     # don't trim audio if track is already aligned
     if is_manual_upload:
-        delta = 0
+        delta = buffer_duration
     else:
         delta = buffer_duration - 3000 # to account for 3 second count down
     

@@ -332,6 +332,7 @@ class DAW extends Component {
           recordedTrackId={this.state.selectedTrackId}
           trackMetadata={this.props.trackMetadata}
           mutedTracks={this.state.mutedTracks}
+          hasCountdownLatency={true}
         />,
         {
           title: "Check Recording",
@@ -559,6 +560,32 @@ class DAW extends Component {
     }
   };
 
+  realignTake = async (trackId, takeURL) => {
+    const latency = await CustomDialog(
+      <AlignRecordingModalContent
+        recordedURL={takeURL}
+        recordedTrackId={trackId}
+        trackMetadata={this.props.trackMetadata}
+        mutedTracks={this.state.mutedTracks}
+        hasCountdownLatency={false}
+      />,
+      {
+        title: "Check Recording",
+        isCanClose: false,
+        // showCloseIcon: true,
+      }
+    );
+    // delete recording instead
+    if (latency === "scrap") {
+      return;
+    }
+    let response = await fetch(takeURL);
+    let data = await response.blob();
+    let file = new File([data], `recording_track_${trackId}.mp3`);
+    const isManualUpload = true;
+    this.createTake(trackId, file, isManualUpload, latency);
+  };
+
   render() {
     const otherMembersOnline = this.props.numOnlineUsers > 1;
     return (
@@ -589,6 +616,7 @@ class DAW extends Component {
                       renameTrack={this.renameTrack}
                       deleteTrack={this.deleteTrack}
                       handleFileUpload={this.handleFileUpload}
+                      realignTake={this.realignTake}
                     />
                   </div>
                   {Object.keys(this.props.trackMetadata[trackId].takes)
