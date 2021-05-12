@@ -46,6 +46,7 @@ class DAW extends Component {
       numGroupMembersTotal: 1,
       preparedGroupAction: null,
       withGroup: false,
+      // notifiedOnce: false, // TODO
     };
     this.audioContext = null;
     this.gumStream = null;
@@ -73,6 +74,13 @@ class DAW extends Component {
     );
     if (!this.state.receivedImmediateStop) {
       this.setState({ receivedImmediateStop: true, withGroup: false });
+      this.toggleMasterStop();
+      const username = JSON.parse(localStorage.getItem("userDetails")).name;
+      if (typeof data.stopped_by === "string" && data.stopped_by !== username) {
+        alert(`${data.stopped_by} stopped!`);
+      }
+    } else {
+      console.log("begin group stop listener being called again..?");
       this.toggleMasterStop();
       const username = JSON.parse(localStorage.getItem("userDetails")).name;
       if (typeof data.stopped_by === "string" && data.stopped_by !== username) {
@@ -116,7 +124,9 @@ class DAW extends Component {
         " to request " +
         data.action
     );
+    // console.log("notified once:", this.state.notifiedOnce); // TODO
     if (
+      // this.state.notifiedOnce || // TODO
       (data.action === "play" && this.state.requestingGroupPlayback) ||
       (data.action === "record" && this.state.requestingGroupRecord)
     ) {
@@ -136,8 +146,10 @@ class DAW extends Component {
       } else {
         this.requestGroupRecord();
       }
+      // this.setState({ notifiedOnce: false }); // TODO
     } else {
       console.log(`[SOCKET.IO] not ready to join for ${data.action}...`);
+      // this.setState({ preparedGroupAction: data.action, notifiedOnce: true }); // TODO
       this.setState({ preparedGroupAction: data.action });
     }
   };
@@ -286,12 +298,22 @@ class DAW extends Component {
       alert("Select a track to record!");
     } else {
       console.log("recording track " + this.state.selectedTrackId);
-      this.startMicrophone();
-      this.setState((state) => {
-        return {
-          showCountdown: true,
-        };
-      });
+      // check if mic permissions are allowed before actually recording
+      navigator.mediaDevices
+        .getUserMedia({ audio: true })
+        .then(() => {
+          console.log("mic permission granted");
+          this.startMicrophone();
+          this.setState({
+            showCountdown: true,
+            isBlocked: false,
+          });
+        })
+        .catch(() => {
+          console.log("MIC PERMISSIOM DENIED");
+          alert("Please allow access to your microphone!");
+          this.setState({ isBlocked: true });
+        });
     }
   }
 
@@ -527,8 +549,9 @@ class DAW extends Component {
 
     let latestTakeURLs = Object.keys(this.props.trackMetadata)
       .filter((trackId) => {
-        const numTakes = Object.keys(this.props.trackMetadata[trackId].takes)
-          .length;
+        const numTakes = Object.keys(
+          this.props.trackMetadata[trackId].takes
+        ).length;
         return numTakes !== 0;
       })
       .map((trackId) => {
