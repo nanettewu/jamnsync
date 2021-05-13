@@ -76,15 +76,15 @@ class App extends Component {
     fetch("/auth/logout", { method: "POST" })
       .then((resp) => resp.json())
       .then((res) => {
-        if (res.status === 401) {
-          console.log("server error: couldn't log out");
-          localStorage.clear();
-          this.setState({ userDetails: {}, isUserLoggedIn: false });
-          history.replace("/home");
-        }
         console.log(res.message);
         localStorage.clear();
         this.setState({ userDetails: {}, isUserLoggedIn: false });
+      })
+      .catch((err) => {
+        console.log("ERROR:", err);
+        localStorage.clear();
+        this.setState({ userDetails: {}, isUserLoggedIn: false });
+        history.replace("/home");
       });
   };
 
