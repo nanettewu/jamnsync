@@ -47,6 +47,7 @@ class DAW extends Component {
       preparedGroupAction: null,
       withGroup: false,
       alreadyAligning: false,
+      trackTimesInMillis: {},
     };
     this.audioContext = null;
     this.gumStream = null;
@@ -298,6 +299,17 @@ class DAW extends Component {
         console.log("requesting group play");
         this.requestImmediateGroupPlay();
       }
+    }
+    const maxTime =
+      Object.values(this.state.trackTimesInMillis).length === 0
+        ? 0
+        : Math.max(...Object.values(this.state.trackTimesInMillis));
+    if (
+      this.state.runningTime > maxTime &&
+      maxTime !== 0 &&
+      !(this.state.masterRecord || this.state.isRecording)
+    ) {
+      this.toggleMasterStop();
     }
   }
 
@@ -821,6 +833,12 @@ class DAW extends Component {
     this.createTake(realignTrackId, file, isManualUpload, latency);
   };
 
+  updateTrackTimesInMillis = (trackId, trackTimeInSecs) => {
+    let newTrackTimes = Object.assign({}, this.state.trackTimesInMillis);
+    newTrackTimes[trackId] = trackTimeInSecs * 1000;
+    this.setState({ trackTimesInMillis: newTrackTimes });
+  };
+
   render() {
     const otherMembersOnline = this.props.numOnlineUsers > 1;
     const totalTakes = Object.keys(this.props.trackMetadata).reduce(
@@ -833,6 +851,8 @@ class DAW extends Component {
       0
     );
     const claimedTrackIdsKeys = Object.keys(this.state.claimedTrackIds);
+    const trackTimes = Object.values(this.state.trackTimesInMillis);
+    const maxTime = trackTimes.length === 0 ? 0 : Math.max(...trackTimes);
     return (
       <div style={{ marginBottom: "10px" }}>
         <div>
@@ -870,6 +890,7 @@ class DAW extends Component {
                       handleFileUpload={this.handleFileUpload}
                       realignTake={this.realignTake}
                       claimedBy={claimedBy}
+                      updateTrackTimesInMillis={this.updateTrackTimesInMillis}
                     />
                   </div>
                   {Object.keys(this.props.trackMetadata[trackId].takes)
@@ -1069,9 +1090,34 @@ class DAW extends Component {
             )}
           </div>
           <div
+            style={
+              this.state.masterRecord ||
+              this.state.isRecording ||
+              this.state.showCountdown
+                ? {
+                    position: "absolute",
+                    marginLeft: "235px",
+                    marginTop: "5px",
+                    width: "85px",
+                    color: "lightgray",
+                  }
+                : {
+                    position: "absolute",
+                    marginLeft: "235px",
+                    marginTop: "5px",
+                    width: "85px",
+                  }
+            }
+          >
+            /
+            <span style={{ marginLeft: "6px" }}>
+              {this.formattedTime(maxTime)}
+            </span>
+          </div>
+          <div
             style={{
               position: "absolute",
-              marginLeft: "250px",
+              marginLeft: "320px",
               width: "100px",
             }}
           >
@@ -1083,7 +1129,6 @@ class DAW extends Component {
               onChange={this.changeVolume}
             />
           </div>
-
           {/* <div
             style={{
               position: "absolute",
@@ -1106,7 +1151,7 @@ class DAW extends Component {
             className="timer"
             style={{
               position: "absolute",
-              marginLeft: "525px",
+              marginLeft: "580px",
               marginTop: "-100px",
             }}
           >

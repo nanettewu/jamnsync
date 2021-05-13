@@ -71,6 +71,11 @@ class Track extends Component {
         this.audioFile = document.getElementById(
           `audio-file-${this.props.trackId}`
         );
+        this.audioFile.onloadedmetadata = () => {
+          const duration = this.audioFile.duration;
+          console.log("track duration", duration);
+          this.props.updateTrackTimesInMillis(this.props.trackId, duration);
+        };
       }
       // otherwise reset the take state
     } else {
@@ -88,8 +93,15 @@ class Track extends Component {
       this.audioFile = document.getElementById(
         `audio-file-${this.props.trackId}`
       );
+      this.audioFile.onloadedmetadata = () => {
+        const duration = this.audioFile.duration;
+        console.log("track duration", duration);
+        this.props.updateTrackTimesInMillis(this.props.trackId, duration);
+      };
     } else if (this.state.s3URL === null && this.audioFile !== null) {
       this.audioFile = null;
+      console.log("track duration is 0");
+      this.props.updateTrackTimesInMillis(this.props.trackId, 0);
     }
 
     // unselect selected track if a different track is selected
@@ -215,7 +227,7 @@ class Track extends Component {
 
   fastForward = () => {
     this.audioFile.pause();
-    const duration = this.audioFile.duration();
+    const duration = this.audioFile.duration;
     const currentSeek = this.audioFile.currentTime;
     const forwardTo = currentSeek + 5;
     if (forwardTo >= duration) {
@@ -286,6 +298,11 @@ class Track extends Component {
     this.audioFile = document.getElementById(
       `audio-file-${this.props.trackId}`
     );
+    this.audioFile.onloadedmetadata = () => {
+      const duration = this.audioFile.duration;
+      console.log("track duration", duration);
+      this.props.updateTrackTimesInMillis(this.props.trackId, duration);
+    };
   };
 
   async deleteTake() {
