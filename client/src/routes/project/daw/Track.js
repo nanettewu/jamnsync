@@ -40,6 +40,7 @@ class Track extends Component {
       soloing: false,
       volume: 84.95,
       threeDotsAnchorElement: null,
+      claimedBy: null,
     };
     this.audioFile = null;
     if (Object.keys(props.takes).length !== 0) {
@@ -97,6 +98,10 @@ class Track extends Component {
       this.props.selectedTrackId !== this.props.trackId
     ) {
       this.setState({ selected: false });
+    }
+
+    if (prevProps.claimedBy !== this.props.claimedBy) {
+      this.setState({ claimedBy: this.props.claimedBy });
     }
 
     // if no take is currently selected and # of states updated
@@ -364,9 +369,12 @@ class Track extends Component {
       }, [])
       .reverse();
 
-    const buttonSelectText = this.state.selected
-      ? "Unselect"
-      : "Select to Record";
+    let buttonSelectText;
+    if (this.state.claimedBy !== null) {
+      buttonSelectText = `Selected by ${this.state.claimedBy}`;
+    } else {
+      buttonSelectText = this.state.selected ? "Unselect" : "Select to Record";
+    }
 
     return (
       <div style={{ marginLeft: "5px" }}>
@@ -381,6 +389,14 @@ class Track extends Component {
                   marginBottom: "15px",
                   fontWeight: "bold",
                 }
+              : this.state.claimedBy !== null
+              ? {
+                  backgroundColor: "#f6f6f6",
+                  color: "#a8a8a8",
+                  padding: "1px 12px",
+                  borderLeft: "4px solid #d1e0f8",
+                  marginBottom: "15px",
+                }
               : { marginBottom: "17px" }
           }
         >
@@ -390,7 +406,12 @@ class Track extends Component {
           <button
             title="Select/unselect track for recording"
             onClick={this.selectToRecord}
-            style={{ marginLeft: "10px", height: "25px", cursor: "pointer" }}
+            style={
+              this.state.claimedBy === null
+                ? { marginLeft: "10px", height: "25px", cursor: "pointer" }
+                : { marginLeft: "10px", height: "25px" }
+            }
+            disabled={this.state.claimedBy !== null}
           >
             {buttonSelectText}
           </button>

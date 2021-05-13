@@ -58,10 +58,7 @@ def connected():
         
 @socketio.on('disconnect')
 def disconnected():
-    print('[SOCKET.IO] client disconnected', request.sid)
-    if request.sid in client_names:
-        del client_names[request.sid]
-        
+    print('[SOCKET.IO] client disconnected', request.sid)        
     for room in list(prepared_play_by_room):
         if request.sid in prepared_play_by_room[room]:
             print("[SOCKET.IO] > removing client from prepared play | room", room)
@@ -78,13 +75,20 @@ def disconnected():
         if len(prepared_record_by_room[room]) == 0:
             del prepared_record_by_room[room]
         
+    client_name_exists = request.sid in client_names
     for room in list(all_clients_by_room):
         if request.sid in all_clients_by_room[room]:
             print("[SOCKET.IO] > removing client from all | room", room)
             all_clients_by_room[room].remove(request.sid)
+            if client_name_exists:
+                socketio.emit('updateClaimedTracks', {'track_id': None, 'claimed_by': client_names[request.sid]}, to=room, include_self=False)
+
         # reset memoizing of room if no more clients left
         if len(all_clients_by_room[room]) == 0:
             del all_clients_by_room[room]
+       
+    if client_name_exists:
+        del client_names[request.sid]
             
     user_list = []
     for user_id in all_clients_by_room[room]:
@@ -158,6 +162,29 @@ def leave_project(data):
         socketio.emit('updateNumPrepared', {'num_prepared':len(prepared_play_by_room[room]), 'action': "play"}, to=room )
         if len(prepared_play_by_room[room]) == 0:
             del prepared_play_by_room[room]
+            
+    socketio.emit('updateClaimedTracks', {'track_id': None, 'claimed_by': username}, to=room, include_self=False)
+    
+@socketio.on('catch up new member')
+def catch_up_new_member(data):
+    print("[SOCKET.IO] received request to catch up new member", request.sid)
+    room = data['channel']
+    if room in all_clients_by_room and len(all_clients_by_room[room]) > 0:
+        help_replica = None
+        for replica in all_clients_by_room[room]:
+            if replica != request.sid:
+                help_replica = replica
+                break
+        
+        def join_update_claimed_tracks_callback(data):
+            print("[SOCKET.IO] found replica to catch up on claimed tracks:", data)
+            for user, track_id in data.items():    
+                if user:
+                    print("[SOCKET.IO] > updating user:", user, ", track:", track_id)
+                    socketio.emit('updateClaimedTracks', {'track_id': track_id, 'claimed_by': user}, room=request.sid)
+        
+        if help_replica != None:
+            socketio.emit('retrieveCurrentClaimedTracks', room=help_replica, callback=join_update_claimed_tracks_callback)
 
 @socketio.on('get current online users')
 def get_current_online_users(data):
@@ -168,6 +195,28 @@ def get_current_online_users(data):
     print("[SOCKET.IO] emit online users: " + str(user_list))
     user_list.sort()
     socketio.emit('updateOnlineUsers', {'user_list': user_list}, room=request.sid)
+    
+@socketio.on('prepare group record')
+def prepare_group_record(data):
+    print('[SOCKET.IO] received request to group record: ' + str(data))
+    room = data['channel']
+    if room not in prepared_record_by_room:  
+        prepared_record_by_room[room] = set()
+    prepared_record_by_room[room].add(request.sid)
+    # if all clients are ready to record
+    print('[SOCKET.IO] prepared clients: ' + str(prepared_record_by_room[room]))
+    print('[SOCKET.IO] all clients: ' + str(all_clients_by_room[room]))
+    if prepared_record_by_room[room] == all_clients_by_room[room]: 
+        del prepared_record_by_room[room]
+        print("[SOCKET.IO] emit group record")
+        socketio.emit('beginGroupRecord', room=room)
+        return True
+    
+    print("[SOCKET.IO] not ready to record yet")
+    requester = client_names[request.sid] if request.sid in client_names else None
+    socketio.emit('updateNumPrepared', {'num_prepared':len(prepared_record_by_room[room]), 'action': "record"}, to=room )
+    socketio.emit('notifyWaitingGroupMember', {'requester': requester, 'action': "record", 'num_prepared':len(prepared_record_by_room[room])}, to=room, include_self=False)
+    return False
 
 @socketio.on('prepare group play')
 def prepare_group_play(data):
@@ -192,6 +241,17 @@ def prepare_group_play(data):
     socketio.emit('notifyWaitingGroupMember', {'requester': requester, 'action': "play", 'num_prepared':len(prepared_play_by_room[room])}, to=room, include_self=False)
     return False
 
+@socketio.on('immediate group record')
+def immediate_group_record(data):
+    print('[SOCKET.IO] received request to immediately group record: ' + str(data))
+    room = data['channel']
+    if room in prepared_record_by_room and prepared_record_by_room[room] == all_clients_by_room[room]: 
+        del prepared_record_by_room[room]
+        print("[SOCKET.IO] emit group record")
+        socketio.emit('beginGroupRecord', to=room)
+        return
+    print('[SOCKET.IO] insufficiently prepared clients: ' + str(prepared_record_by_room[room]))
+
 @socketio.on('immediate group play')
 def immediate_group_play(data):
     print('[SOCKET.IO] received request to immediately group play: ' + str(data))
@@ -211,7 +271,7 @@ def immediate_group_stop(data):
     print(f"[SOCKET.IO] received request to immediately stop from {user} to {room}")
     print("[SOCKET.IO] emit group stop")
     socketio.emit('beginGroupStop', {'stopped_by': user}, to=room)
-    
+
 @socketio.on('cancel request')
 def cancel_request(data):
     room = data["channel"]
@@ -223,39 +283,6 @@ def cancel_request(data):
         prepared_record_by_room[room].remove(request.sid)
         socketio.emit('updateNumPrepared', {'num_prepared':len(prepared_record_by_room[room]), 'action': "record"}, to=room )
     return True
-
-@socketio.on('prepare group record')
-def prepare_group_record(data):
-    print('[SOCKET.IO] received request to group record: ' + str(data))
-    room = data['channel']
-    if room not in prepared_record_by_room:  
-        prepared_record_by_room[room] = set()
-    prepared_record_by_room[room].add(request.sid)
-    # if all clients are ready to record
-    print('[SOCKET.IO] prepared clients: ' + str(prepared_record_by_room[room]))
-    print('[SOCKET.IO] all clients: ' + str(all_clients_by_room[room]))
-    if prepared_record_by_room[room] == all_clients_by_room[room]: 
-        del prepared_record_by_room[room]
-        print("[SOCKET.IO] emit group record")
-        socketio.emit('beginGroupRecord', room=room)
-        return True
-    
-    print("[SOCKET.IO] not ready to record yet")
-    requester = client_names[request.sid] if request.sid in client_names else None
-    socketio.emit('updateNumPrepared', {'num_prepared':len(prepared_record_by_room[room]), 'action': "record"}, to=room )
-    socketio.emit('notifyWaitingGroupMember', {'requester': requester, 'action': "record", 'num_prepared':len(prepared_record_by_room[room])}, to=room, include_self=False)
-    return False
-
-@socketio.on('immediate group record')
-def immediate_group_play(data):
-    print('[SOCKET.IO] received request to immediately group record: ' + str(data))
-    room = data['channel']
-    if room in prepared_record_by_room and prepared_record_by_room[room] == all_clients_by_room[room]: 
-        del prepared_record_by_room[room]
-        print("[SOCKET.IO] emit group record")
-        socketio.emit('beginGroupRecord', to=room)
-        return
-    print('[SOCKET.IO] insufficiently prepared clients: ' + str(prepared_record_by_room[room]))
 
 @socketio.on('broadcast update groups')
 def broadcast_update_groups():
@@ -275,6 +302,14 @@ def broadcast_update_project(data):
     print(f"[SOCKET.IO] received broadcast update project for {room}")
     print("[SOCKET.IO] emit updateProject for DAW page")
     socketio.emit('updateProject', {'data': ''}, room=room)
+
+@socketio.on('broadcast update claimed tracks')
+def broadcast_update_claimed_tracks(data):
+    room = data["channel"]
+    track_id = data["track_id"]
+    claimed_by = data["claimed_by"]
+    print(f"[SOCKET.IO] broadcast update claimed tracks for {room}")
+    socketio.emit('updateClaimedTracks', {'track_id': track_id, 'claimed_by': claimed_by}, to=room, include_self=False)
 
 ############################################################################
 # API

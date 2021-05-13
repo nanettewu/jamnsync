@@ -30,6 +30,7 @@ class DAW extends Component {
       masterRecord: false,
       isRecording: false,
       selectedTrackId: null, // to record
+      claimedTrackIds: {},
       isBlocked: true,
       showCountdown: false,
       runningTime: 0,
@@ -51,6 +52,7 @@ class DAW extends Component {
     this.gumStream = null;
     this.input = null;
     this.recorder = null;
+    this.username = JSON.parse(localStorage.getItem("userDetails")).name;
     this.toggleMasterRecord = this.toggleMasterRecord.bind(this);
     this.toggleMasterStop = this.toggleMasterStop.bind(this);
   }
@@ -72,8 +74,10 @@ class DAW extends Component {
       "[SOCKET.IO] receiving begin group stop for " + this.props.projectName
     );
     if (!this.state.receivedImmediateStop) {
-      const username = JSON.parse(localStorage.getItem("userDetails")).name;
-      if (typeof data.stopped_by === "string" && data.stopped_by !== username) {
+      if (
+        typeof data.stopped_by === "string" &&
+        data.stopped_by !== this.username
+      ) {
         if (this.state.masterRecord) {
           await Alert(
             `${data.stopped_by} wants to stop! Press OK when you're done recording.`,
@@ -92,8 +96,10 @@ class DAW extends Component {
       }
     } else {
       console.log("begin group stop listener being called again..?");
-      const username = JSON.parse(localStorage.getItem("userDetails")).name;
-      if (typeof data.stopped_by === "string" && data.stopped_by !== username) {
+      if (
+        typeof data.stopped_by === "string" &&
+        data.stopped_by !== this.username
+      ) {
         if (this.state.masterRecord) {
           await Alert(
             `${data.stopped_by} wants to stop! Press OK when you're done recording.`,
@@ -188,6 +194,29 @@ class DAW extends Component {
     }
   };
 
+  updateClaimedTracksListener = (data) => {
+    console.log("[SOCKET.IO] updating claimed tracks", data);
+    let newClaimedTrackIds = Object.assign({}, this.state.claimedTrackIds);
+    if (data.track_id === null) {
+      delete newClaimedTrackIds[data.claimed_by];
+    } else {
+      newClaimedTrackIds[data.claimed_by] = data.track_id;
+    }
+    this.setState({
+      claimedTrackIds: newClaimedTrackIds,
+    });
+  };
+
+  retrieveCurrentClaimedTracksListener = (callback) => {
+    console.log(
+      "[SOCKET.IO] received request to catch up new member: ",
+      this.state.claimedTrackIds
+    );
+    let completeClaimedTrackIds = Object.assign({}, this.state.claimedTrackIds);
+    completeClaimedTrackIds[this.username] = this.state.selectedTrackId;
+    callback(completeClaimedTrackIds);
+  };
+
   // REACT MAIN FUNCTIONS:
 
   componentDidMount() {
@@ -202,6 +231,7 @@ class DAW extends Component {
         this.setState({ isBlocked: true });
       });
 
+    this.username = JSON.parse(localStorage.getItem("userDetails")).name;
     this.setState({
       isRecording: false,
       masterRecord: false,
@@ -212,13 +242,20 @@ class DAW extends Component {
 
     // create socket io listeners + keyboard input (spacebar) listener
     console.log(
-      `[SOCKET.IO] ${this.props.projectName} | creating DAW listeners`
+      `[SOCKET.IO] ${this.props.projectName} | creating DAW listeners for ${this.username}`
     );
     socket.on("beginGroupPlay", this.beginGroupPlayListener);
     socket.on("beginGroupStop", this.beginGroupStopListener);
     socket.on("beginGroupRecord", this.beginGroupRecordListener);
     socket.on("updateNumPrepared", this.updateNumPreparedListener);
     socket.on("notifyWaitingGroupMember", this.notifyWaitingGroupMember);
+    socket.on("updateClaimedTracks", this.updateClaimedTracksListener);
+    socket.on(
+      "retrieveCurrentClaimedTracks",
+      this.retrieveCurrentClaimedTracksListener
+    );
+
+    socket.emit("catch up new member", { channel: this.props.projectHash });
   }
 
   componentDidUpdate(prevProps) {
@@ -278,6 +315,11 @@ class DAW extends Component {
     socket.off("beginGroupRecord", this.beginGroupRecordListener);
     socket.off("updateNumPrepared", this.updateNumPreparedListener);
     socket.off("notifyWaitingGroupMember", this.notifyWaitingGroupMember);
+    socket.off("updateClaimedTracks", this.updateClaimedTracksListener);
+    socket.off(
+      "retrieveCurrentClaimedTracks",
+      this.retrieveCurrentClaimedTracksListener
+    );
   }
 
   // TRACK OPERATIONS
@@ -551,6 +593,12 @@ class DAW extends Component {
     const newId = id !== null ? id : null;
     console.log("selecting track to record: " + newId);
     this.setState({ selectedTrackId: newId });
+    console.log("> [SOCKET.IO] broadcasting update claimed tracks");
+    socket.emit("broadcast update claimed tracks", {
+      channel: this.props.projectHash,
+      track_id: id,
+      claimed_by: this.username,
+    });
   };
 
   formattedTime = (ms) => {
@@ -680,10 +728,9 @@ class DAW extends Component {
   requestGroupStop = () => {
     console.log("[SOCKET.IO] request immediate group stop");
     if (this.state.withGroup) {
-      const username = JSON.parse(localStorage.getItem("userDetails")).name;
       socket.emit("immediate group stop", {
         channel: this.props.projectHash,
-        user: username,
+        user: this.username,
       });
     } else {
       console.log("wanted to stop again but not with group anymore");
@@ -777,6 +824,7 @@ class DAW extends Component {
       },
       0
     );
+    const claimedTrackIdsKeys = Object.keys(this.state.claimedTrackIds);
     return (
       <div style={{ marginBottom: "10px" }}>
         <div>
@@ -784,6 +832,13 @@ class DAW extends Component {
           Object.keys(this.props.trackMetadata).length > 0 ? (
             Object.keys(this.props.trackMetadata).map((trackId) => {
               const trackInfo = this.props.trackMetadata[trackId];
+              const trackOwner = claimedTrackIdsKeys.find(
+                (key) => this.state.claimedTrackIds[key] === trackId
+              );
+              const claimedBy =
+                trackOwner !== this.username && trackOwner !== undefined
+                  ? trackOwner
+                  : null;
               return (
                 <div key={`track_${trackId}`}>
                   <div>
@@ -806,6 +861,7 @@ class DAW extends Component {
                       deleteTrack={this.deleteTrack}
                       handleFileUpload={this.handleFileUpload}
                       realignTake={this.realignTake}
+                      claimedBy={claimedBy}
                     />
                   </div>
                   {Object.keys(this.props.trackMetadata[trackId].takes)
