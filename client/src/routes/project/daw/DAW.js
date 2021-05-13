@@ -651,6 +651,9 @@ class DAW extends Component {
 
   requestGroupPlay = () => {
     console.log("[SOCKET.IO] requesting group play");
+    socket.emit("get current online users", {
+      channel: this.props.projectHash,
+    });
     socket.emit(
       "prepare group play",
       {
@@ -694,6 +697,9 @@ class DAW extends Component {
     if (this.state.selectedTrackId === null) {
       alert("Select a track before recording!");
     } else {
+      socket.emit("get current online users", {
+        channel: this.props.projectHash,
+      });
       socket.emit(
         "prepare group record",
         {

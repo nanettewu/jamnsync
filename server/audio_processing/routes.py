@@ -167,7 +167,7 @@ def get_current_online_users(data):
         user_list.append(client_names[user_id])
     print("[SOCKET.IO] emit online users: " + str(user_list))
     user_list.sort()
-    socketio.emit('updateOnlineUsers', {'user_list': user_list}, to=room)
+    socketio.emit('updateOnlineUsers', {'user_list': user_list}, room=request.sid)
 
 @socketio.on('prepare group play')
 def prepare_group_play(data):
