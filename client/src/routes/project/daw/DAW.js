@@ -278,6 +278,14 @@ class DAW extends Component {
     ) {
       this.resetGroupControls();
     } else if (
+      (this.state.requestingGroupPlayback ||
+        this.state.requestingGroupRecord ||
+        this.state.preparedGroupAction !== null) &&
+      this.state.numGroupMembersPrepared === 0
+    ) {
+      console.log("old state, resetting controls:", this.state);
+      this.resetGroupControls();
+    } else if (
       this.props.numOnlineUsers > 1 &&
       this.props.numOnlineUsers === this.state.numGroupMembersPrepared &&
       (this.state.requestingGroupRecord || this.state.requestingGroupPlayback)
@@ -906,7 +914,8 @@ class DAW extends Component {
                 this.state.withGroup ||
                 this.state.requestingGroupRecord ||
                 this.state.requestingGroupPlayback ||
-                this.state.preparedGroupAction === "play"
+                this.state.preparedGroupAction === "play" ||
+                this.state.showCountdown
               }
             >
               {this.state.requestingGroupRecord ? "waiting..." : "group record"}
@@ -915,10 +924,7 @@ class DAW extends Component {
           {otherMembersOnline && (
             <button
               onClick={this.requestGroupStop}
-              disabled={
-                (!this.state.masterPlay && !this.state.withGroup) ||
-                this.state.showCountdown
-              }
+              disabled={!this.state.withGroup || this.state.showCountdown}
               style={{ height: "35px", marginTop: "8px" }}
             >
               group stop
@@ -932,7 +938,9 @@ class DAW extends Component {
                 this.state.withGroup ||
                 this.state.requestingGroupPlayback ||
                 this.state.requestingGroupRecord ||
-                this.state.preparedGroupAction === "record"
+                this.state.preparedGroupAction === "record" ||
+                this.state.showCountdown ||
+                totalTakes === 0
               }
               style={{ height: "35px", marginTop: "8px" }}
             >
