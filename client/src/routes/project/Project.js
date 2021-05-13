@@ -354,7 +354,13 @@ class Project extends Component {
                 <IconButton
                   disableRipple
                   aria-label="Sync"
-                  onClick={this.refresh}
+                  onClick={() => {
+                    this.refresh();
+                    console.log("retrieving current online users");
+                    socket.emit("get current online users", {
+                      channel: this.state.project_hash,
+                    });
+                  }}
                   style={{ marginTop: "0px" }}
                 >
                   <SyncRoundedIcon style={{ fontSize: 20 }} />

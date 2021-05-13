@@ -3,7 +3,7 @@ import "./DAW.css";
 import Track from "./Track";
 import LoadingGif from "./LoadingGif";
 import { CountdownCircleTimer } from "react-countdown-circle-timer";
-import { CustomDialog, Confirm } from "react-st-modal"; // https://github.com/Nodlik/react-st-modal
+import { CustomDialog, Confirm, Alert } from "react-st-modal"; // https://github.com/Nodlik/react-st-modal
 import AlignRecordingModalContent from "./AlignRecording";
 import Slider from "rc-slider";
 import "rc-slider/assets/index.css";
@@ -42,11 +42,10 @@ class DAW extends Component {
       requestingGroupRecord: false,
       requestingGroupPlayback: false,
       receivedImmediateStop: false,
-      numGroupMembersPrepared: 1,
-      numGroupMembersTotal: 1,
+      numGroupMembersPrepared: 0,
       preparedGroupAction: null,
       withGroup: false,
-      // notifiedOnce: false, // TODO
+      alreadyAligning: false,
     };
     this.audioContext = null;
     this.gumStream = null;
@@ -68,25 +67,56 @@ class DAW extends Component {
     });
   };
 
-  beginGroupStopListener = (data) => {
+  beginGroupStopListener = async (data) => {
     console.log(
       "[SOCKET.IO] receiving begin group stop for " + this.props.projectName
     );
     if (!this.state.receivedImmediateStop) {
-      this.setState({ receivedImmediateStop: true, withGroup: false });
-      this.toggleMasterStop();
       const username = JSON.parse(localStorage.getItem("userDetails")).name;
       if (typeof data.stopped_by === "string" && data.stopped_by !== username) {
-        alert(`${data.stopped_by} stopped!`);
+        if (this.state.masterRecord) {
+          await Alert(
+            `${data.stopped_by} wants to stop! Press OK when you're done recording.`,
+            `Group record stopped`
+          );
+          this.setState({ receivedImmediateStop: true, withGroup: false });
+          this.toggleMasterStop();
+        } else {
+          this.setState({ receivedImmediateStop: true, withGroup: false });
+          this.toggleMasterStop();
+          await Alert(`${data.stopped_by} stopped!`, `Group rehearsal stopped`);
+        }
+      } else {
+        this.setState({ receivedImmediateStop: true, withGroup: false });
+        this.toggleMasterStop();
       }
     } else {
       console.log("begin group stop listener being called again..?");
-      this.toggleMasterStop();
       const username = JSON.parse(localStorage.getItem("userDetails")).name;
       if (typeof data.stopped_by === "string" && data.stopped_by !== username) {
-        alert(`${data.stopped_by} stopped!`);
+        if (this.state.masterRecord) {
+          await Alert(
+            `${data.stopped_by} wants to stop! Press OK when you're done recording.`,
+            `Group record stopped`
+          );
+          this.toggleMasterStop();
+        } else {
+          this.toggleMasterStop();
+          await Alert(
+            `${data.stopped_by} stopped!!`,
+            `Group rehearsal stopped`
+          );
+        }
+      } else {
+        this.toggleMasterStop();
       }
     }
+    this.setState({
+      requestingGroupRecord: false,
+      requestingGroupPlayback: false,
+      numGroupMembersPrepared: 0,
+      preparedGroupAction: null,
+    });
   };
 
   beginGroupRecordListener = () => {
@@ -105,13 +135,11 @@ class DAW extends Component {
       // reset all group state
       this.setState({
         numGroupMembersPrepared: data.num_prepared,
-        numGroupMembersTotal: data.num_total,
         preparedGroupAction: null,
       });
     } else {
       this.setState({
         numGroupMembersPrepared: data.num_prepared,
-        numGroupMembersTotal: data.num_total,
         preparedGroupAction: data.action,
       });
     }
@@ -122,15 +150,23 @@ class DAW extends Component {
       "[SOCKET.IO] received request from group member " +
         data.requester +
         " to request " +
-        data.action
+        data.action +
+        " | num prepared: " +
+        data.num_prepared
     );
-    // console.log("notified once:", this.state.notifiedOnce); // TODO
     if (
-      // this.state.notifiedOnce || // TODO
       (data.action === "play" && this.state.requestingGroupPlayback) ||
-      (data.action === "record" && this.state.requestingGroupRecord)
+      (data.action === "record" && this.state.requestingGroupRecord) ||
+      data.num_prepared > 1
     ) {
       console.log("[SOCKET.IO] no need to notify me, already ready to go");
+      return;
+    }
+    if (data.requester === null) {
+      console.log("disconnected client attempting to start session");
+      alert(
+        `A group member tried to initiate "group ${data.action}" but their connection is faulty. Please ask them to refresh their page.`
+      );
       return;
     }
     const readyToJoin = await Confirm(
@@ -146,10 +182,8 @@ class DAW extends Component {
       } else {
         this.requestGroupRecord();
       }
-      // this.setState({ notifiedOnce: false }); // TODO
     } else {
       console.log(`[SOCKET.IO] not ready to join for ${data.action}...`);
-      // this.setState({ preparedGroupAction: data.action, notifiedOnce: true }); // TODO
       this.setState({ preparedGroupAction: data.action });
     }
   };
@@ -185,10 +219,9 @@ class DAW extends Component {
     socket.on("beginGroupRecord", this.beginGroupRecordListener);
     socket.on("updateNumPrepared", this.updateNumPreparedListener);
     socket.on("notifyWaitingGroupMember", this.notifyWaitingGroupMember);
-    document.body.addEventListener("keypress", this.createAnnotation);
   }
 
-  componentDidUpdate() {
+  componentDidUpdate(prevProps) {
     if (this.state.initialLoad) {
       if (Object.keys(this.props.trackMetadata).length === 0) {
         this.createTrack();
@@ -202,10 +235,41 @@ class DAW extends Component {
         runningTime: 0,
       });
     }
+    if (
+      this.props.numOnlineUsers === 1 &&
+      prevProps.numOnlineUsers !== this.props.numOnlineUsers
+    ) {
+      this.resetGroupControls();
+    } else if (
+      this.props.numOnlineUsers > 1 &&
+      this.props.numOnlineUsers === this.state.numGroupMembersPrepared &&
+      (this.state.requestingGroupRecord || this.state.requestingGroupPlayback)
+    ) {
+      console.log("all users that are online are ready to go!!!!!");
+      if (this.state.requestingGroupRecord) {
+        console.log("requesting group record");
+        this.requestImmediateGroupRecord();
+      } else if (this.state.requestingGroupPlayback) {
+        console.log("requesting group play");
+        this.requestImmediateGroupPlay();
+      }
+    }
   }
 
+  resetGroupControls = () => {
+    console.log("resetting group controls");
+    this.setState({
+      requestingGroupRecord: false,
+      requestingGroupPlayback: false,
+      receivedImmediateStop: false,
+      numGroupMembersPrepared: 0,
+      preparedGroupAction: null,
+      withGroup: false,
+    });
+  };
+
   componentWillUnmount() {
-    // remove socket io listeners + keyboard input (spacebar) listener
+    // remove socket io listeners
     console.log(
       `[SOCKET.IO] ${this.props.projectName} | removing DAW listeners`
     );
@@ -214,7 +278,6 @@ class DAW extends Component {
     socket.off("beginGroupRecord", this.beginGroupRecordListener);
     socket.off("updateNumPrepared", this.updateNumPreparedListener);
     socket.off("notifyWaitingGroupMember", this.notifyWaitingGroupMember);
-    document.body.removeEventListener("keypress", this.createAnnotation);
   }
 
   // TRACK OPERATIONS
@@ -264,14 +327,15 @@ class DAW extends Component {
     console.log("> master stop");
     clearInterval(this.timer);
     if (!this.state.masterPlay) {
+      console.log("stopped but not playing");
       this.setState({
-        masterStop: true,
         runningTime: 0,
         receivedImmediateStop: false,
       });
       return;
     }
     if (!this.state.isRecording) {
+      console.log("stopped but not recording");
       this.setState({
         masterStop: true,
         runningTime: 0,
@@ -318,7 +382,6 @@ class DAW extends Component {
   }
 
   startMicrophone = () => {
-    console.log("[RECORDING] start microphone");
     this.audioContext = new AudioContext();
     navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
       console.log(
@@ -344,8 +407,7 @@ class DAW extends Component {
       this.recorder.onComplete = async (recorder, blob) => {
         if (!this.state.masterRecord) {
           console.log(
-            "[RECORDING] alignment tool is trying to pop up but shouldn't:",
-            this.state
+            "[RECORDING] alignment tool is trying to pop up but shouldn't..."
           );
           return;
         }
@@ -379,7 +441,6 @@ class DAW extends Component {
           const audio_url =
             this.props.trackMetadata[trackId].takes[takeId].s3_info +
             "?cacheblock=true";
-          console.log("audio url:" + audio_url);
           return audio_url;
         });
     } else {
@@ -400,7 +461,6 @@ class DAW extends Component {
           const audio_url =
             this.props.trackMetadata[trackId].takes[takeId].s3_info +
             "?cacheblock=true";
-          console.log("audio url:" + audio_url);
           return audio_url;
         });
     }
@@ -412,7 +472,6 @@ class DAW extends Component {
   };
 
   stopMicrophone = async (blob) => {
-    console.log("[RECORDING] stopping microphone");
     let file = new File(
       [blob],
       `recording_track_${this.state.selectedTrackId}.mp3`
@@ -422,7 +481,7 @@ class DAW extends Component {
     this.setState({ stopMicProcessing: false });
     const numTotalTracks = Object.keys(this.props.trackMetadata).length;
     console.log(
-      "stopping microphone, sending these muted tracks to alignment tool:",
+      "[RECORDING] stopping microphone, not sending these muted tracks to alignment tool:",
       this.state.mutedTracks
     );
     let nonRecordedTrackURLs = this.findNonRecordedTrackURLs(
@@ -432,8 +491,10 @@ class DAW extends Component {
     if (
       numTotalTracks > 1 &&
       nonRecordedTrackURLs.length > 0 &&
-      this.state.selectedTrackId !== null
+      this.state.selectedTrackId !== null &&
+      !this.state.alreadyAligning
     ) {
+      this.setState({ alreadyAligning: true });
       latency = await CustomDialog(
         <AlignRecordingModalContent
           recordedURL={recordedURL}
@@ -451,6 +512,7 @@ class DAW extends Component {
         this.setState({
           isRecording: false,
           masterRecord: false,
+          alreadyAligning: false,
         });
         return;
       }
@@ -460,6 +522,7 @@ class DAW extends Component {
     this.setState({
       isRecording: false,
       masterRecord: false,
+      alreadyAligning: false,
     });
   };
 
@@ -538,7 +601,6 @@ class DAW extends Component {
   };
 
   downloadMixedTrack = async () => {
-    console.log("downloading track");
     const confirm = await Confirm(
       `This will create a MP3 file containing the latest take from all parts. Are you sure you want to download?`,
       "Download Mix"
@@ -557,10 +619,8 @@ class DAW extends Component {
       .map((trackId) => {
         const takes = this.props.trackMetadata[trackId].takes;
         const takeId = Object.keys(takes).pop();
-        console.log(takeId);
         return takes[takeId].s3_info + "?cacheblock=true";
       });
-    console.log(latestTakeURLs);
     crunker
       .fetchAudio(...latestTakeURLs)
       .then((buffers) => {
@@ -597,9 +657,7 @@ class DAW extends Component {
         channel: this.props.projectHash,
       },
       (shouldPlay) => {
-        if (shouldPlay) {
-          this.toggleMasterPlay();
-        } else {
+        if (!shouldPlay) {
           this.setState({
             requestingGroupPlayback: true,
             preparedGroupAction: "play",
@@ -609,13 +667,24 @@ class DAW extends Component {
     );
   };
 
+  requestImmediateGroupPlay = () => {
+    console.log("[SOCKET.IO] request immediate group play");
+    socket.emit("immediate group play", {
+      channel: this.props.projectHash,
+    });
+  };
+
   requestGroupStop = () => {
     console.log("[SOCKET.IO] request immediate group stop");
-    const username = JSON.parse(localStorage.getItem("userDetails")).name;
-    socket.emit("immediate group stop", {
-      channel: this.props.projectHash,
-      user: username,
-    });
+    if (this.state.withGroup) {
+      const username = JSON.parse(localStorage.getItem("userDetails")).name;
+      socket.emit("immediate group stop", {
+        channel: this.props.projectHash,
+        user: username,
+      });
+    } else {
+      console.log("wanted to stop again but not with group anymore");
+    }
   };
 
   // TODO: needs to send which track it chose to record and
@@ -623,7 +692,7 @@ class DAW extends Component {
   requestGroupRecord = () => {
     console.log("[SOCKET.IO] request group record");
     if (this.state.selectedTrackId === null) {
-      alert("Select a track before requesting group record!");
+      alert("Select a track before recording!");
     } else {
       socket.emit(
         "prepare group record",
@@ -631,9 +700,7 @@ class DAW extends Component {
           channel: this.props.projectHash,
         },
         (shouldRecord) => {
-          if (shouldRecord) {
-            this.toggleMasterRecord();
-          } else {
+          if (!shouldRecord) {
             this.setState({
               requestingGroupRecord: true,
               preparedGroupAction: "record",
@@ -642,6 +709,13 @@ class DAW extends Component {
         }
       );
     }
+  };
+
+  requestImmediateGroupRecord = () => {
+    console.log("[SOCKET.IO] request immediate group record");
+    socket.emit("immediate group record", {
+      channel: this.props.projectHash,
+    });
   };
 
   cancelRequest = () => {
@@ -653,18 +727,6 @@ class DAW extends Component {
         preparedGroupAction: null,
       });
     });
-  };
-
-  // seek = (value) => {
-  //   console.log("seek:", value);
-  // };
-
-  createAnnotation = (event) => {
-    if (event.keyCode === 32 && this.state.masterPlay) {
-      console.log(
-        "SPACE BAR PRESS:" + this.formattedTime(this.state.runningTime)
-      );
-    }
   };
 
   realignTake = async (realignTrackId, takeURL) => {
@@ -700,6 +762,15 @@ class DAW extends Component {
 
   render() {
     const otherMembersOnline = this.props.numOnlineUsers > 1;
+    const totalTakes = Object.keys(this.props.trackMetadata).reduce(
+      (accumulator, trackId) => {
+        return (
+          accumulator +
+          Object.keys(this.props.trackMetadata[trackId].takes).length
+        );
+      },
+      0
+    );
     return (
       <div style={{ marginBottom: "10px" }}>
         <div>
@@ -770,6 +841,7 @@ class DAW extends Component {
               onClick={this.requestGroupRecord}
               disabled={
                 this.state.masterPlay ||
+                this.state.withGroup ||
                 this.state.requestingGroupRecord ||
                 this.state.requestingGroupPlayback ||
                 this.state.preparedGroupAction === "play"
@@ -781,7 +853,10 @@ class DAW extends Component {
           {otherMembersOnline && (
             <button
               onClick={this.requestGroupStop}
-              disabled={!this.state.masterPlay}
+              disabled={
+                (!this.state.masterPlay && !this.state.withGroup) ||
+                this.state.showCountdown
+              }
               style={{ height: "35px", marginTop: "8px" }}
             >
               group stop
@@ -792,6 +867,7 @@ class DAW extends Component {
               onClick={this.requestGroupPlay}
               disabled={
                 this.state.masterPlay ||
+                this.state.withGroup ||
                 this.state.requestingGroupPlayback ||
                 this.state.requestingGroupRecord ||
                 this.state.preparedGroupAction === "record"
@@ -813,11 +889,12 @@ class DAW extends Component {
               cancel request
             </button>
           )}
-          {this.state.preparedGroupAction !== null &&
+          {otherMembersOnline &&
+            this.state.preparedGroupAction !== null &&
             this.state.numGroupMembersPrepared !== 0 && (
-              <div style={{ marginLeft: "10px", marginTop: "10px" }}>
-                {this.state.numGroupMembersPrepared}/
-                {this.state.numGroupMembersTotal} ready
+              <div style={{ marginLeft: "10px", marginTop: "14px" }}>
+                {this.state.numGroupMembersPrepared}/{this.props.numOnlineUsers}{" "}
+                ready
                 {this.state.preparedGroupAction &&
                   ` for ${this.state.preparedGroupAction}`}
               </div>
@@ -832,7 +909,10 @@ class DAW extends Component {
           </p>
         )}
         {/* TODO: Live Monitoring */}
-        <Tooltip title="Record selected part" arrow>
+        <Tooltip
+          title={this.state.masterPlay ? "" : "Record selected part"}
+          arrow
+        >
           <span>
             <IconButton
               disableRipple
@@ -841,10 +921,14 @@ class DAW extends Component {
               disabled={
                 this.state.masterPlay ||
                 this.state.isBlocked ||
-                this.state.withGroup
+                this.state.withGroup ||
+                this.state.showCountdown
               }
             >
-              {this.state.masterPlay || this.state.isBlocked ? (
+              {this.state.masterPlay ||
+              this.state.isBlocked ||
+              this.state.withGroup ||
+              this.state.showCountdown ? (
                 <FiberManualRecordRoundedIcon style={{ fontSize: 28 }} />
               ) : (
                 <FiberManualRecordRoundedIcon
@@ -867,7 +951,12 @@ class DAW extends Component {
             </IconButton>
           </span>
         </Tooltip>
-        <Tooltip title="Play all parts" arrow>
+        <Tooltip
+          title={
+            this.state.masterPlay || totalTakes === 0 ? "" : "Play all parts"
+          }
+          arrow
+        >
           <span>
             <IconButton
               disableRipple
@@ -875,13 +964,16 @@ class DAW extends Component {
               onClick={this.toggleMasterPlay}
               disabled={
                 this.state.masterPlay ||
-                Object.keys(this.props.trackMetadata).length === 0 ||
-                this.state.withGroup
+                this.state.withGroup ||
+                totalTakes === 0 ||
+                this.state.showCountdown
               }
               style={{ marginLeft: "-5px" }}
             >
               {this.state.masterPlay ||
-              Object.keys(this.props.trackMetadata).length === 0 ? (
+              this.state.withGroup ||
+              totalTakes === 0 ||
+              this.state.showCountdown ? (
                 <PlayArrowRoundedIcon style={{ fontSize: 35 }} />
               ) : (
                 <PlayArrowRoundedIcon

@@ -66,6 +66,7 @@ def disconnected():
         if request.sid in prepared_play_by_room[room]:
             print("[SOCKET.IO] > removing client from prepared play | room", room)
             prepared_play_by_room[room].remove(request.sid)
+            socketio.emit('updateNumPrepared', {'num_prepared':len(prepared_play_by_room[room]), 'action': "play"}, to=room )
         if len(prepared_play_by_room[room]) == 0:
             del prepared_play_by_room[room]
     
@@ -73,6 +74,7 @@ def disconnected():
         if request.sid in prepared_record_by_room[room]:
             print("[SOCKET.IO] > removing client from prepared record | room", room)
             prepared_record_by_room[room].remove(request.sid)
+            socketio.emit('updateNumPrepared', {'num_prepared':len(prepared_record_by_room[room]), 'action': "record"}, to=room )
         if len(prepared_record_by_room[room]) == 0:
             del prepared_record_by_room[room]
         
@@ -83,6 +85,13 @@ def disconnected():
         # reset memoizing of room if no more clients left
         if len(all_clients_by_room[room]) == 0:
             del all_clients_by_room[room]
+            
+    user_list = []
+    for user_id in all_clients_by_room[room]:
+        user_list.append(client_names[user_id])
+    print("[SOCKET.IO] emit online users: " + str(user_list))
+    user_list.sort()
+    socketio.emit('updateOnlineUsers', {'user_list': user_list}, to=room)
     print('[SOCKET.IO] all clients left:' + str(all_clients_by_room))
     
 @socketio.on('join project')
@@ -92,20 +101,27 @@ def join_project(data):
     client_names[request.sid] = username
     print('###############################')
     print(f"[SOCKET.IO] JOIN: {username} has joined the project")
+    join_room(room)
     if not room in all_clients_by_room:
         all_clients_by_room[room] = set()
     all_clients_by_room[room].add(request.sid)
     print('[SOCKET.IO] updated all clients by room:' + str(all_clients_by_room))
     print('###############################')
-    join_room(room)
-    if len(all_clients_by_room[room]) > 1:
-        user_list = []
-        for user_id in all_clients_by_room[room]:
-            if user_id in client_names:
-                user_list.append(client_names[user_id])
-        print("[SOCKET.IO] emit online users: " + str(user_list))
-        user_list.sort()
-        socketio.emit('updateOnlineUsers', {'user_list': user_list}, to=room)
+    user_list = []
+    for user_id in all_clients_by_room[room]:
+        if user_id in client_names:
+            user_list.append(client_names[user_id])
+    print("[SOCKET.IO] emit online users: " + str(user_list))
+    user_list.sort()
+    socketio.emit('updateOnlineUsers', {'user_list': user_list}, to=room)
+    
+    if room in prepared_record_by_room and len(prepared_record_by_room[room]) > 0:
+        print("[SOCKET.IO] > update num prepared to client | room", room)
+        socketio.emit('updateNumPrepared', {'num_prepared':len(prepared_record_by_room[room]), 'action': "record"}, to=room )
+            
+    if room in prepared_play_by_room and len(prepared_play_by_room[room]) > 0:
+        print("[SOCKET.IO] > update num prepared to client | room", room)
+        socketio.emit('updateNumPrepared', {'num_prepared':len(prepared_play_by_room[room]), 'action': "play"}, to=room )
 
 @socketio.on('leave project')
 def leave_project(data):
@@ -114,8 +130,10 @@ def leave_project(data):
     if room in all_clients_by_room and request.sid in all_clients_by_room[room]:
         print('###############################')
         print(f"[SOCKET.IO] LEAVE: {username} has left the project")
-        all_clients_by_room[room].remove(request.sid)
         leave_room(room)
+        all_clients_by_room[room].remove(request.sid)
+        print('[SOCKET.IO] updated all clients by room: ' + str(all_clients_by_room))
+        print('###############################')
         user_list = []
         for user_id in all_clients_by_room[room]:
             user_list.append(client_names[user_id])
@@ -126,9 +144,30 @@ def leave_project(data):
         # clean up
         if len(all_clients_by_room[room]) == 0:
             del all_clients_by_room[room]
-        
-    print('[SOCKET.IO] updated all clients by room: ' + str(all_clients_by_room))
-    print('###############################')
+            
+    if room in prepared_record_by_room and request.sid in prepared_record_by_room[room]:
+        print("[SOCKET.IO] > removing client from prepared record | room", room)
+        prepared_record_by_room[room].remove(request.sid)
+        socketio.emit('updateNumPrepared', {'num_prepared':len(prepared_record_by_room[room]), 'action': "record"}, to=room )
+        if len(prepared_record_by_room[room]) == 0:
+            del prepared_record_by_room[room]
+            
+    if room in prepared_play_by_room and request.sid in prepared_play_by_room[room]:
+        print("[SOCKET.IO] > removing client from prepared play | room", room)
+        prepared_play_by_room[room].remove(request.sid)
+        socketio.emit('updateNumPrepared', {'num_prepared':len(prepared_play_by_room[room]), 'action': "play"}, to=room )
+        if len(prepared_play_by_room[room]) == 0:
+            del prepared_play_by_room[room]
+
+@socketio.on('get current online users')
+def get_current_online_users(data):
+    room = data['channel']
+    user_list = []
+    for user_id in all_clients_by_room[room]:
+        user_list.append(client_names[user_id])
+    print("[SOCKET.IO] emit online users: " + str(user_list))
+    user_list.sort()
+    socketio.emit('updateOnlineUsers', {'user_list': user_list}, to=room)
 
 @socketio.on('prepare group play')
 def prepare_group_play(data):
@@ -136,9 +175,10 @@ def prepare_group_play(data):
     room = data['channel']
     if room not in prepared_play_by_room:  
         prepared_play_by_room[room] = set()
+    print('[SOCKET.IO] current prepared clients: ' + str(prepared_play_by_room[room]))
     prepared_play_by_room[room].add(request.sid)
     # if all clients are ready to play
-    print('[SOCKET.IO] prepared clients: ' + str(prepared_play_by_room[room]))
+    print('[SOCKET.IO] new prepared clients: ' + str(prepared_play_by_room[room]))
     print('[SOCKET.IO] all clients: ' + str(all_clients_by_room[room]))
     if prepared_play_by_room[room] == all_clients_by_room[room]: 
         del prepared_play_by_room[room]
@@ -148,9 +188,21 @@ def prepare_group_play(data):
     
     print("[SOCKET.IO] not ready to play yet")
     requester = client_names[request.sid] if request.sid in client_names else None
-    socketio.emit('notifyWaitingGroupMember', {'requester': requester, 'action': "play"}, to=room, include_self=False)
-    socketio.emit('updateNumPrepared', {'num_prepared':len(prepared_play_by_room[room]), 'num_total':len(all_clients_by_room[room]), 'action': "play"}, to=room )
+    socketio.emit('updateNumPrepared', {'num_prepared':len(prepared_play_by_room[room]), 'action': "play"}, to=room )
+    socketio.emit('notifyWaitingGroupMember', {'requester': requester, 'action': "play", 'num_prepared':len(prepared_play_by_room[room])}, to=room, include_self=False)
     return False
+
+@socketio.on('immediate group play')
+def immediate_group_play(data):
+    print('[SOCKET.IO] received request to immediately group play: ' + str(data))
+    room = data['channel']
+    if room in prepared_play_by_room and prepared_play_by_room[room] == all_clients_by_room[room]: 
+        del prepared_play_by_room[room]
+        print("[SOCKET.IO] emit group play")
+        socketio.emit('beginGroupPlay', to=room)
+        return
+
+    print('[SOCKET.IO] insufficiently prepared clients: ' + str(prepared_play_by_room[room]))
 
 @socketio.on('immediate group stop')
 def immediate_group_stop(data):
@@ -163,13 +215,13 @@ def immediate_group_stop(data):
 @socketio.on('cancel request')
 def cancel_request(data):
     room = data["channel"]
+    print(f"[SOCKET.IO] cancelling request for {request.sid} in project {room}")
     if room in prepared_play_by_room and request.sid in prepared_play_by_room[room]:
         prepared_play_by_room[room].remove(request.sid)
-        socketio.emit('updateNumPrepared', {'num_prepared':len(prepared_play_by_room[room]), 'num_total':len(all_clients_by_room[room]), 'action': "play"}, to=room )
+        socketio.emit('updateNumPrepared', {'num_prepared':len(prepared_play_by_room[room]), 'action': "play"}, to=room )
     elif room in prepared_record_by_room and request.sid in prepared_record_by_room[room]:
         prepared_record_by_room[room].remove(request.sid)
-        socketio.emit('updateNumPrepared', {'num_prepared':len(prepared_record_by_room[room]), 'num_total':len(all_clients_by_room[room]), 'action': "record"}, to=room )
-    print(f"[SOCKET.IO] cancelling request for {request.sid} in project {room}")
+        socketio.emit('updateNumPrepared', {'num_prepared':len(prepared_record_by_room[room]), 'action': "record"}, to=room )
     return True
 
 @socketio.on('prepare group record')
@@ -190,9 +242,20 @@ def prepare_group_record(data):
     
     print("[SOCKET.IO] not ready to record yet")
     requester = client_names[request.sid] if request.sid in client_names else None
-    socketio.emit('notifyWaitingGroupMember', {'requester': requester, 'action': "record"}, to=room, include_self=False)
-    socketio.emit('updateNumPrepared', {'num_prepared':len(prepared_record_by_room[room]), 'num_total':len(all_clients_by_room[room]), 'action': "record"}, to=room )
+    socketio.emit('updateNumPrepared', {'num_prepared':len(prepared_record_by_room[room]), 'action': "record"}, to=room )
+    socketio.emit('notifyWaitingGroupMember', {'requester': requester, 'action': "record", 'num_prepared':len(prepared_record_by_room[room])}, to=room, include_self=False)
     return False
+
+@socketio.on('immediate group record')
+def immediate_group_play(data):
+    print('[SOCKET.IO] received request to immediately group record: ' + str(data))
+    room = data['channel']
+    if room in prepared_record_by_room and prepared_record_by_room[room] == all_clients_by_room[room]: 
+        del prepared_record_by_room[room]
+        print("[SOCKET.IO] emit group record")
+        socketio.emit('beginGroupRecord', to=room)
+        return
+    print('[SOCKET.IO] insufficiently prepared clients: ' + str(prepared_record_by_room[room]))
 
 @socketio.on('broadcast update groups')
 def broadcast_update_groups():
@@ -559,7 +622,7 @@ def create_take():
     print(f"fixing audio trimming for path: {filepath} with extension '{extension}'")
     song = AudioSegment.from_file(filepath, extension)
     print(f"old frame rate was {song.frame_rate}, changing to 44100 kHz")
-    if song.frame_rate != 44100: # TODO: maybe 48000 instead?
+    if song.frame_rate != 44100:
         song = song.set_frame_rate(44100)
 
     # don't trim audio if track is already aligned
