@@ -788,7 +788,7 @@ class DAW extends Component {
   requestGroupRecord = () => {
     console.log("[SOCKET.IO] request group record");
     if (this.state.selectedTrackId === null) {
-      alert("Select a track before recording!");
+      alert("Select a part before recording!");
     } else {
       socket.emit("get current online users", {
         channel: this.props.projectHash,
@@ -832,7 +832,7 @@ class DAW extends Component {
     let nonRecordedTrackURLs = this.findNonRecordedTrackURLs(realignTrackId);
     if (nonRecordedTrackURLs.length === 0) {
       alert(
-        "Cannot realign: realign is only supported with 1+ other unmuted tracks."
+        "Cannot realign: realign is only supported with 1+ other unmuted parts."
       );
       return;
     }

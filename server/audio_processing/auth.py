@@ -19,8 +19,8 @@ def login():
     return "need valid google account", HTTPStatus.BAD_REQUEST
   
   google_email = request.form.get('google_email')
-  if not google_email or not google_email.endswith("@gmail.com"):
-    return "needs to be a valid gmail email", HTTPStatus.BAD_REQUEST
+  if not google_email:
+    return "needs valid email", HTTPStatus.BAD_REQUEST
 
   user = User.query.filter_by(google_auth_id=google_auth_id, google_email=google_email).first()
   if user:
