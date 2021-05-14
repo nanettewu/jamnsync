@@ -73,7 +73,6 @@ class Track extends Component {
         );
         this.audioFile.onloadedmetadata = () => {
           const duration = this.audioFile.duration;
-          console.log("track duration", duration);
           this.props.updateTrackTimesInMillis(this.props.trackId, duration);
         };
       }
@@ -145,7 +144,9 @@ class Track extends Component {
       this.audioFile &&
       !this.state.playing &&
       (!this.state.selected ||
-        (this.state.selected && !this.props.masterRecord))
+        (this.state.selected && !this.props.masterRecord)) &&
+      ((!this.props.isPaused && prevProps.isPaused && !prevProps.masterPlay) ||
+        this.props.masterRecord)
     ) {
       console.log(
         `[TRACK: ${this.props.trackName}] playing: ${this.state.s3URL}`
@@ -187,6 +188,26 @@ class Track extends Component {
     ) {
       this.audioFile.volume = Math.min(1, this.props.masterVolume);
     }
+
+    if (
+      this.props.isPaused !== prevProps.isPaused &&
+      this.props.masterPlay &&
+      !this.props.masterRecord &&
+      this.audioFile
+    ) {
+      this.playPauseAudio();
+    }
+
+    if (this.audioFile && this.props.seekEvent !== prevProps.seekEvent) {
+      this.audioFile.currentTime = Math.min(
+        this.props.seekEvent / 1000,
+        this.audioFile.duration
+      );
+      this.audioFile.pause();
+      if (this.state.playing) {
+        this.audioFile.play();
+      }
+    }
   }
 
   componentWillUnmount() {
@@ -195,15 +216,15 @@ class Track extends Component {
     }
   }
 
-  // playPauseAudio = () => {
-  //   if (this.state.playing) {
-  //     this.audioFile.pause();
-  //     this.setState({ playing: false });
-  //   } else {
-  //     this.audioFile.play();
-  //     this.setState({ playing: true });
-  //   }
-  // };
+  playPauseAudio = () => {
+    if (this.state.playing && this.audioFile) {
+      this.audioFile.pause();
+      this.setState({ playing: false });
+    } else if (!this.state.playing && this.audioFile) {
+      this.audioFile.play();
+      this.setState({ playing: true });
+    }
+  };
 
   stop = () => {
     this.audioFile.currentTime = 0;
@@ -217,44 +238,44 @@ class Track extends Component {
     this.setState({ volume: volume });
   };
 
-  seek = (value) => {
-    this.audioFile.currentTime = value;
-    this.audioFile.pause();
-    if (this.state.playing) {
-      this.audioFile.play();
-    }
-  };
+  // seek = (value) => {
+  //   this.audioFile.currentTime = value;
+  //   this.audioFile.pause();
+  //   if (this.state.playing) {
+  //     this.audioFile.play();
+  //   }
+  // };
 
-  fastForward = () => {
-    this.audioFile.pause();
-    const duration = this.audioFile.duration;
-    const currentSeek = this.audioFile.currentTime;
-    const forwardTo = currentSeek + 5;
-    if (forwardTo >= duration) {
-      this.audioFile.currentTime = 0;
-      this.audioFile.pause();
-      return;
-    }
-    console.log("ff: " + currentSeek + " -> " + forwardTo);
-    this.audioFile.currentTime = forwardTo;
-    if (this.state.playing) {
-      this.audioFile.play();
-    }
-  };
+  // fastForward = () => {
+  //   this.audioFile.pause();
+  //   const duration = this.audioFile.duration;
+  //   const currentSeek = this.audioFile.currentTime;
+  //   const forwardTo = currentSeek + 5;
+  //   if (forwardTo >= duration) {
+  //     this.audioFile.currentTime = 0;
+  //     this.audioFile.pause();
+  //     return;
+  //   }
+  //   console.log("ff: " + currentSeek + " -> " + forwardTo);
+  //   this.audioFile.currentTime = forwardTo;
+  //   if (this.state.playing) {
+  //     this.audioFile.play();
+  //   }
+  // };
 
-  rewind = () => {
-    this.audioFile.pause();
-    const currentSeek = this.audioFile.currentTime;
-    let backwardTo = currentSeek - 5;
-    if (backwardTo <= 0) {
-      backwardTo = 0;
-    }
-    console.log("rewind: " + currentSeek + " -> " + backwardTo);
-    this.audioFile.currentTime = backwardTo;
-    if (this.state.playing) {
-      this.audioFile.play();
-    }
-  };
+  // rewind = () => {
+  //   this.audioFile.pause();
+  //   const currentSeek = this.audioFile.currentTime;
+  //   let backwardTo = currentSeek - 5;
+  //   if (backwardTo <= 0) {
+  //     backwardTo = 0;
+  //   }
+  //   console.log("rewind: " + currentSeek + " -> " + backwardTo);
+  //   this.audioFile.currentTime = backwardTo;
+  //   if (this.state.playing) {
+  //     this.audioFile.play();
+  //   }
+  // };
 
   mute = () => {
     this.props.updateMutedTracks(this.props.trackId);

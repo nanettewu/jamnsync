@@ -5,11 +5,12 @@ import LoadingGif from "./LoadingGif";
 import { CountdownCircleTimer } from "react-countdown-circle-timer";
 import { CustomDialog, Confirm, Alert } from "react-st-modal"; // https://github.com/Nodlik/react-st-modal
 import AlignRecordingModalContent from "./AlignRecording";
-import Slider from "rc-slider";
-import "rc-slider/assets/index.css";
+// import Slider from "rc-slider";
+// import "rc-slider/assets/index.css";
 
 import IconButton from "@material-ui/core/IconButton";
 import PlayArrowRoundedIcon from "@material-ui/icons/PlayArrowRounded";
+import PauseRoundedIcon from "@material-ui/icons/PauseRounded";
 import StopRoundedIcon from "@material-ui/icons/StopRounded";
 import FiberManualRecordRoundedIcon from "@material-ui/icons/FiberManualRecordRounded";
 import Tooltip from "@material-ui/core/Tooltip";
@@ -48,6 +49,9 @@ class DAW extends Component {
       withGroup: false,
       alreadyAligning: false,
       trackTimesInMillis: {},
+      maxTime: 0,
+      isPaused: true,
+      seekEvent: null,
     };
     this.audioContext = null;
     this.gumStream = null;
@@ -239,7 +243,14 @@ class DAW extends Component {
       selectedTrackId: null,
       soloTracks: [],
       mutedTracks: [],
+      runningTime: 0,
     });
+
+    this.seekSlider = document.getElementById(`seek-slider`);
+    this.seekSlider.value = 0;
+    if (this.timer) {
+      clearInterval(this.timer);
+    }
 
     // create socket io listeners + keyboard input (spacebar) listener
     console.log(
@@ -300,13 +311,9 @@ class DAW extends Component {
         this.requestImmediateGroupPlay();
       }
     }
-    const maxTime =
-      Object.values(this.state.trackTimesInMillis).length === 0
-        ? 0
-        : Math.max(...Object.values(this.state.trackTimesInMillis));
     if (
-      this.state.runningTime > maxTime &&
-      maxTime !== 0 &&
+      this.state.runningTime > this.state.maxTime &&
+      this.state.maxTime !== 0 &&
       !(this.state.masterRecord || this.state.isRecording)
     ) {
       this.toggleMasterStop();
@@ -373,13 +380,28 @@ class DAW extends Component {
 
   toggleMasterPlay = () => {
     console.log("> master play");
+    if (this.state.isPaused && !this.state.masterPlay) {
+      this.setState({ isPaused: !this.state.isPaused });
+    }
     if (this.state.masterPlay) {
+      this.setState({ isPaused: !this.state.isPaused });
       return;
     }
     this.setState((state) => {
-      const startTime = Date.now() - this.state.runningTime;
+      let startTime = Date.now() - this.state.runningTime;
       this.timer = setInterval(() => {
-        this.setState({ runningTime: Date.now() - startTime });
+        if (!this.state.isPaused) {
+          if (
+            Math.abs(Date.now() - startTime - this.state.runningTime) > 1000
+          ) {
+            startTime = Date.now() - this.state.runningTime;
+          }
+          this.seekSlider.value =
+            (this.state.runningTime / this.state.maxTime) * 100;
+          this.setState({ runningTime: Date.now() - startTime });
+        } else {
+          startTime = Date.now() - this.state.runningTime;
+        }
       });
       return { masterPlay: true };
     });
@@ -388,11 +410,13 @@ class DAW extends Component {
   toggleMasterStop() {
     console.log("> master stop");
     clearInterval(this.timer);
+    this.seekSlider.value = 0;
     if (!this.state.masterPlay) {
       console.log("stopped but not playing");
       this.setState({
         runningTime: 0,
         receivedImmediateStop: false,
+        isPaused: true,
       });
       return;
     }
@@ -402,6 +426,7 @@ class DAW extends Component {
         masterStop: true,
         runningTime: 0,
         receivedImmediateStop: false,
+        isPaused: true,
       });
     } else {
       this.setState({
@@ -410,6 +435,7 @@ class DAW extends Component {
         stopMicProcessing: true,
         receivedImmediateStop: false,
         isRecording: false,
+        isPaused: true,
       });
       //stop microphone access
       this.gumStream.getAudioTracks()[0].stop();
@@ -421,7 +447,7 @@ class DAW extends Component {
   async toggleMasterRecord() {
     console.log("> master record");
     if (this.state.selectedTrackId === null) {
-      alert("Select a track to record!");
+      alert("Select a part to record!");
     } else {
       console.log("recording track " + this.state.selectedTrackId);
       // check if mic permissions are allowed before actually recording
@@ -836,7 +862,15 @@ class DAW extends Component {
   updateTrackTimesInMillis = (trackId, trackTimeInSecs) => {
     let newTrackTimes = Object.assign({}, this.state.trackTimesInMillis);
     newTrackTimes[trackId] = trackTimeInSecs * 1000;
-    this.setState({ trackTimesInMillis: newTrackTimes });
+    const maxTime = Math.max(...Object.values(newTrackTimes));
+    this.setState({ trackTimesInMillis: newTrackTimes, maxTime: maxTime });
+  };
+
+  seek = (value) => {
+    this.setState({
+      runningTime: (value / 100) * this.state.maxTime,
+      seekEvent: (value / 100) * this.state.maxTime,
+    });
   };
 
   render() {
@@ -851,8 +885,6 @@ class DAW extends Component {
       0
     );
     const claimedTrackIdsKeys = Object.keys(this.state.claimedTrackIds);
-    const trackTimes = Object.values(this.state.trackTimesInMillis);
-    const maxTime = trackTimes.length === 0 ? 0 : Math.max(...trackTimes);
     return (
       <div style={{ marginBottom: "10px" }}>
         <div>
@@ -891,6 +923,8 @@ class DAW extends Component {
                       realignTake={this.realignTake}
                       claimedBy={claimedBy}
                       updateTrackTimesInMillis={this.updateTrackTimesInMillis}
+                      isPaused={this.state.isPaused}
+                      seekEvent={this.state.seekEvent}
                     />
                   </div>
                   {Object.keys(this.props.trackMetadata[trackId].takes)
@@ -928,7 +962,7 @@ class DAW extends Component {
           </p>
           {otherMembersOnline && (
             <button
-              style={{ marginLeft: "12px", height: "35px", marginTop: "8px" }}
+              style={{ marginLeft: "18px", height: "35px", marginTop: "8px" }}
               onClick={this.requestGroupRecord}
               disabled={
                 this.state.masterPlay ||
@@ -1054,23 +1088,25 @@ class DAW extends Component {
               aria-label="Play"
               onClick={this.toggleMasterPlay}
               disabled={
-                this.state.masterPlay ||
+                this.state.masterRecord ||
                 this.state.withGroup ||
                 totalTakes === 0 ||
                 this.state.showCountdown
               }
               style={{ marginLeft: "-5px" }}
             >
-              {this.state.masterPlay ||
+              {this.state.masterRecord ||
               this.state.withGroup ||
               totalTakes === 0 ||
               this.state.showCountdown ? (
                 <PlayArrowRoundedIcon style={{ fontSize: 35 }} />
-              ) : (
+              ) : this.state.isPaused ? (
                 <PlayArrowRoundedIcon
                   color="primary"
                   style={{ fontSize: 35, color: "#54ae1c" }}
                 />
+              ) : (
+                <PauseRoundedIcon style={{ fontSize: 35 }} />
               )}
             </IconButton>
           </span>
@@ -1090,35 +1126,53 @@ class DAW extends Component {
             )}
           </div>
           <div
+            style={{
+              position: "absolute",
+              marginLeft: "250px",
+              marginTop: "4px",
+            }}
+          >
+            <input
+              type="range"
+              id="seek-slider"
+              max="100"
+              defaultValue="0"
+              onChange={(e) => this.seek(e.target.value)}
+              disabled={this.state.withGroup}
+              title={
+                !this.state.withGroup
+                  ? ""
+                  : "Seeking during group play is not allowed."
+              }
+            />
+          </div>
+          <div
             style={
               this.state.masterRecord ||
               this.state.isRecording ||
               this.state.showCountdown
                 ? {
                     position: "absolute",
-                    marginLeft: "235px",
+                    marginLeft: "505px",
                     marginTop: "5px",
                     width: "85px",
                     color: "lightgray",
                   }
                 : {
                     position: "absolute",
-                    marginLeft: "235px",
-                    marginTop: "5px",
+                    marginLeft: "505px",
+                    marginTop: "4px",
                     width: "85px",
                   }
             }
           >
-            /
-            <span style={{ marginLeft: "6px" }}>
-              {this.formattedTime(maxTime)}
-            </span>
+            {this.formattedTime(this.state.maxTime)}
           </div>
-          <div
+          {/* <div
             style={{
               position: "absolute",
               marginLeft: "320px",
-              width: "100px",
+              width: "55px",
             }}
           >
             Volume
@@ -1128,7 +1182,7 @@ class DAW extends Component {
               defaultValue={100}
               onChange={this.changeVolume}
             />
-          </div>
+          </div> */}
           {/* <div
             style={{
               position: "absolute",
@@ -1151,8 +1205,8 @@ class DAW extends Component {
             className="timer"
             style={{
               position: "absolute",
-              marginLeft: "580px",
-              marginTop: "-100px",
+              marginLeft: "715px",
+              marginTop: "-95px",
             }}
           >
             <CountdownCircleTimer
@@ -1183,7 +1237,11 @@ class DAW extends Component {
                 });
                 this.toggleMasterStop();
               }}
-              style={{ marginTop: "10px", marginBottom: "10px" }}
+              style={{
+                marginTop: "6px",
+                marginBottom: "10px",
+                height: "25px",
+              }}
             >
               Ahh I'm not ready!
             </button>
