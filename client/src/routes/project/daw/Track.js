@@ -21,8 +21,8 @@ const DELETE_TRACK_OPTION = "Delete Part";
 const FILE_UPLOAD_OPTION = "+ Upload File";
 
 const options = [
-  REALIGN_OPTION,
   DELETE_TRACK_OPTION,
+  REALIGN_OPTION,
   RENAME_TRACK_OPTION,
   FILE_UPLOAD_OPTION,
 ];
