@@ -83,6 +83,14 @@ def disconnected():
             if client_name_exists:
                 socketio.emit('updateClaimedTracks', {'track_id': None, 'claimed_by': client_names[request.sid]}, to=room, include_self=False)
 
+        user_list = []
+        for user_id in all_clients_by_room[room]:
+            user_list.append(client_names[user_id])
+        print("[SOCKET.IO] emit online users: " + str(user_list))
+        user_list.sort()
+        socketio.emit('updateOnlineUsers', {'user_list': user_list}, to=room)
+        print('[SOCKET.IO] all clients left:' + str(all_clients_by_room))
+        
         # reset memoizing of room if no more clients left
         if len(all_clients_by_room[room]) == 0:
             del all_clients_by_room[room]
@@ -90,14 +98,6 @@ def disconnected():
     if client_name_exists:
         del client_names[request.sid]
             
-    user_list = []
-    for user_id in all_clients_by_room[room]:
-        user_list.append(client_names[user_id])
-    print("[SOCKET.IO] emit online users: " + str(user_list))
-    user_list.sort()
-    socketio.emit('updateOnlineUsers', {'user_list': user_list}, to=room)
-    print('[SOCKET.IO] all clients left:' + str(all_clients_by_room))
-    
 @socketio.on('join project')
 def join_project(data):
     username = data['user']
