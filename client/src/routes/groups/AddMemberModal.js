@@ -22,7 +22,7 @@ export default function AddMemberModalContent(props) {
   };
 
   const userDropdownOptions = Object.keys(props.users)
-    .sort((a, b) => props.users[a] < props.users[b])
+    .sort((a, b) => props.users[a].toLowerCase() > props.users[b].toLowerCase())
     .reduce((acc, userid) => {
       acc.push({
         value: userid,
