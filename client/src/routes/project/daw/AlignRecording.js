@@ -10,7 +10,8 @@ import "./AlignRecording.css";
 import LoadingGif from "./LoadingGif";
 import WaveSurfer from "wavesurfer.js";
 import Draggable from "react-draggable";
-import Crunker from "crunker"; // https://github.com/jackedgson/crunker
+// import Crunker from "crunker"; // https://github.com/jackedgson/crunker
+import Crunker from "./crunker";
 
 import VolumeMuteRoundedIcon from "@material-ui/icons/VolumeMuteRounded";
 import VolumeDownRoundedIcon from "@material-ui/icons/VolumeUpRounded";
@@ -99,6 +100,7 @@ export default function AlignRecordingModalContent(props) {
           })
           .then((merged) => {
             // => AudioBuffer
+            console.log(merged);
             return crunker.export(merged, "audio/mp3");
           })
           .then((output) => {
