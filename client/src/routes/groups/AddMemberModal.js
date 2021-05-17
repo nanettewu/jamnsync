@@ -21,13 +21,15 @@ export default function AddMemberModalContent(props) {
     setNewUserName(option.label);
   };
 
-  const userDropdownOptions = Object.keys(props.users).reduce((acc, userid) => {
-    acc.push({
-      value: userid,
-      label: props.users[userid],
-    });
-    return acc;
-  }, []);
+  const userDropdownOptions = Object.keys(props.users)
+    .sort((a, b) => props.users[a] < props.users[b])
+    .reduce((acc, userid) => {
+      acc.push({
+        value: userid,
+        label: props.users[userid],
+      });
+      return acc;
+    }, []);
 
   return (
     <div>
