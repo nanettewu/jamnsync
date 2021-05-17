@@ -34,3 +34,6 @@ unused
 __pycache__
 s3_downloads
 experiments
+
+# analytics
+.ipynb_checkpoints/
