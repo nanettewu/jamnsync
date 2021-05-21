@@ -36,4 +36,4 @@ s3_downloads
 experiments
 
 # analytics
-.ipynb_checkpoints/
+analytics/
